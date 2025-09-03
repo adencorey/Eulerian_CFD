@@ -1,0 +1,4 @@
+fluid_sim.log
+.venv
+.vscode
+__pycache__/
