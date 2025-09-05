@@ -1,4 +1,5 @@
-fluid_sim.log
 .venv
 .vscode
 __pycache__/
+logs
+local

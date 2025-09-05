@@ -4,8 +4,9 @@ from enum import Enum
 import logging
 import sys
 
-from .ui.main_menu import MainMenu
-from .ui.tool_bar import ToolBar
+from fluid_sim.ui.main_menu import MainMenu
+from fluid_sim.ui.tool_bar import ToolBar
+from fluid_sim.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +20,15 @@ class AppScreens(Enum):
 
 class App:
     
-    def __init__(self, screen: pg.Surface) -> None:
+    def __init__(self, screen: pg.Surface, settings: Settings) -> None:
         
         self.screen: pg.Surface = screen
         self.width, self.height = self.screen.get_size()
-        self.bg_colour = (50, 50, 50)
+        self.settings = settings
         
         self.clock: pg.time.Clock = pg.time.Clock()
         self.current_screen = MainMenu(self)
-        self.tool_bar = ToolBar(bg_colour=self.bg_colour, screen_width=self.width)
+        self.tool_bar = ToolBar(settings=self.settings, screen_width=self.width)
         
     def set_screen(self, app_screen: AppScreens) -> None:
         
@@ -53,13 +54,21 @@ class App:
                     case "minimise":
                         pg.display.iconify()
                         logger.info("Minimised screen")
+                        
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_TAB:
+                        self.settings.theme_name = "light" if self.settings.theme_name == "dark" else "dark"
+                    if event.key == pg.K_SPACE:
+                        self.settings.save()
+            
+            self.tool_bar.update()
 
-            self.screen.fill(self.bg_colour)
+            self.screen.fill(self.settings.theme.background)
             self.current_screen.draw()
             self.tool_bar.draw(self.screen)
             pg.display.update()
+            self.clock.tick(self.settings.fps)
         
         logger.info("Shutting down program...")
         pg.quit()
-        logger.info("Quitted Pygame")
         sys.exit()

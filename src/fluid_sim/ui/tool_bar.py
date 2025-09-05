@@ -2,13 +2,16 @@ import pygame as pg
 
 import logging
 
+from fluid_sim.settings import Settings
+
 logger = logging.getLogger(__name__)
 
 
 class ToolBar:
     
-    def __init__(self, bg_colour: tuple, screen_width: int) -> None:
+    def __init__(self, settings: Settings, screen_width) -> None:
         
+        self.settings = settings
         self.screen_width = screen_width
         self.button_width = 0.03 * self.screen_width
         self.button_height = 0.02 * self.screen_width
@@ -18,23 +21,31 @@ class ToolBar:
         self.min_button = pg.Rect(self.screen_width - 2 * self.button_width, 0, self.button_width, self.button_height)
         
         #   symbols
-        self.font = pg.font.Font(None, 36)
+        self.font = pg.font.SysFont("DejaVu Sans", 25)   #   monospace font
         
-        self.quit_symbol: pg.Surface = self.font.render("×", True, (255, 255, 255))
+        self.update_colours()
+
         self.quit_symbol_rect: pg.Rect = self.quit_symbol.get_rect(center = self.quit_button.center)
-        
-        self.min_symbol: pg.Surface = self.font.render("_", True, (255, 255, 255))
         self.min_symbol_rect: pg.Rect = self.min_symbol.get_rect(center = self.min_button.center)
         
-        #   colours
-        self.base_colour: tuple = bg_colour
-        self.quit_hover_colour = (255, 0, 0)    #   red
-        self.min_hover_button = (100, 100, 100)     #   dark grey
         
         #   hover identifier
         self.hover_button = None
         
-    def button_hovered(self, mouse_pos: tuple) -> None:
+    def update_colours(self) -> None:
+        
+        #   update colours
+        self.base_colour = self.settings.theme.background
+        self.quit_hover_colour = (255, 0, 0)    #   red
+        self.min_hover_button = self.settings.theme.hover
+        
+        self.quit_symbol: pg.Surface = self.font.render("x", True, self.settings.theme.main)
+        self.min_symbol: pg.Surface = self.font.render("_", True, self.settings.theme.main)
+    
+    def update(self) -> None:
+        self.update_colours()        
+        
+    def handle_button_hovered(self, mouse_pos: tuple) -> None:
         
         old_hover = self.hover_button
         
@@ -50,7 +61,7 @@ class ToolBar:
         if old_hover != self.hover_button:
             logger.debug(f"Hovering {self.hover_button}")
     
-    def button_clicked(self, mouse_pos: tuple) -> str | None:
+    def handle_button_clicked(self, mouse_pos: tuple) -> str | None:
         
         if self.quit_button.collidepoint(mouse_pos):
             logger.info("Clicked quit button")
@@ -68,11 +79,11 @@ class ToolBar:
         
         #   if mouse movement is detected
         if event.type == pg.MOUSEMOTION:
-            self.button_hovered(mouse_pos)
+            self.handle_button_hovered(mouse_pos)
         
         #   if left button is pressed
         if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
-            return self.button_clicked(mouse_pos)
+            return self.handle_button_clicked(mouse_pos)
 
         return   
     
@@ -90,3 +101,6 @@ class ToolBar:
         #   draw symbols
         screen.blit(self.quit_symbol, self.quit_symbol_rect)
         screen.blit(self.min_symbol, self.min_symbol_rect)
+        
+        #   draw line
+        pg.draw.line(screen, self.settings.theme.main, (0, self.button_height), (self.screen_width, self.button_height), 3)
