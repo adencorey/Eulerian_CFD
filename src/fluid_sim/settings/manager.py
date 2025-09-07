@@ -2,31 +2,9 @@ import os
 import json
 import logging
 
+from fluid_sim.settings.themes import THEME
+
 log = logging.getLogger(__name__)
-
-#   ==========[ THEMES ]==========
-class Theme:
-    
-    def __init__(self, background, main, hover):
-        
-        self.background = background
-        self.main = main
-        self.hover = hover
-    
-THEME = {
-    
-    "light": Theme(
-        background=(255, 255, 255),
-        main=(0, 0, 0),
-        hover=(200, 200, 200)
-    ),
-    "dark": Theme(
-        background=(50, 50, 50),
-        main=(220, 220, 220),
-        hover=(100, 100, 100)
-    )
-}
-
 
 #   ==========[ SETTINGS ]==========
 class Settings:
@@ -72,8 +50,10 @@ class Settings:
                 log.warning(f"Failed to read file, file may be corrupted ({e}) ")
         else:
             log.debug("Settings file not found, using default settings")
-        
-#   presets
+
+
+
+#   ==========[ SETTINGS PRESETS ]==========
 DEFAULT = Settings(
     theme_name="dark",
     fps=60
