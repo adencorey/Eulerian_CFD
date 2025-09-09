@@ -16,12 +16,22 @@ class SettingsScreen:
         self.title_surf = config.font["title"].render("Settings", True, config.main_clr)
         self.title_pos = int(0.1 * config.width), int(0.06 * config.height)
         
-        #   ==========[ THEME SETTING ]==========
-        self.theme_title_surf = config.font["body"].render("Theme", True, config.main_clr)
-        self.theme_title_pos = self._get_grid(0, 1, title=True)
-        self.theme_dropdown = DropDown(name="theme-dropdown", rect=pg.Rect(self._get_grid(0, 1), (int(0.2 * config.width), int(0.05 * config.height))), 
-                             text=["Light", "Dark"], setting=settings.theme_name)
+        self.dropdown_size = int(0.2 * config.width), int(0.05 * config.height)
         
+        #   ==========[ THEME SETTING ]==========
+        self.theme_title_surf = config.font["head"].render("Theme", True, config.main_clr)
+        self.theme_title_pos = self._get_grid(0, 1, title=True)
+        self.theme_dropdown = DropDown(name="theme-dropdown", rect=pg.Rect(self._get_grid(0, 1), self.dropdown_size), text=["light", "dark"], setting=settings.theme_name)
+
+        #   ==========[ FPS SETTING ]==========
+        self.fps_title_surf = config.font["head"].render("Frame Rate", True, config.main_clr)
+        self.fps_title_pos = self._get_grid(0, 2, title=True)
+        self.fps_dropdown = DropDown(name="fps-dropdown", rect=pg.Rect(self._get_grid(0, 2), self.dropdown_size), text=["30", "45", "60", "120"], setting=settings.fps)
+        
+        self.dropdowns:list[list[pg.Surface, tuple, DropDown]] = [
+            [self.theme_title_surf, self.theme_title_pos, self.theme_dropdown],
+            [self.fps_title_surf, self.fps_title_pos, self.fps_dropdown]
+        ]
         self.hovering = None
         
     def _get_grid(self, row, col, title=False) -> tuple[int, int]:
@@ -30,58 +40,52 @@ class SettingsScreen:
         else:
             return int((row * 0.2 + 0.1) * config.width), int((col * 0.05 + 0.1) * config.width)
     
-    #   ==========[ HANDLE EVENTS ]==========
-    def _handle_dropdown_sub_hovered(self, dropdown: DropDown, mouse_pos:tuple) -> None:
-        
-        if dropdown.show:
-            for i, rect in enumerate(dropdown.sub_rect):
-                if rect.collidepoint(mouse_pos):
-                    self.hovering = f"{dropdown.name}.{dropdown.text[i].lower()}"
-                    return True
-        return False
-    
+    #   ==========[ HANDLE EVENTS ]==========    
     def _handle_dropdown_hovered(self, mouse_pos:tuple) -> None:
         
         old_hover = self.hovering
         
-        if self.theme_dropdown.rect.collidepoint(mouse_pos) or self.theme_dropdown.arrow_rect.collidepoint(mouse_pos):
+        if self.theme_dropdown.collide(mouse_pos):
             self.hovering = self.theme_dropdown.name
-        
-        elif self._handle_dropdown_sub_hovered(self.theme_dropdown, mouse_pos): pass
+        elif self.theme_dropdown.collide_sub(mouse_pos): self.hovering = f"{self.theme_dropdown.name}.{self.theme_dropdown.hovering}"
+
+        elif self.fps_dropdown.collide(mouse_pos):
+            self.hovering = self.fps_dropdown.name
+        elif self.fps_dropdown.collide_sub(mouse_pos): self.hovering = f"{self.fps_dropdown.name}.{self.theme_dropdown.hovering}"
         
         else:
             self.hovering = None
             
         if old_hover != self.hovering:
             logger.debug(f"Hovering {self.hovering}")
+
+    def _handle_dropdown_clicked(self) -> None:
         
-    def _handle_dropdown_clicked(self, mouse_pos:tuple) -> None:
+        if not self.hovering: return
         
-        clicked_btn = None
         event = None
         extra_data = {}
-        change = False
-        if self.theme_dropdown.rect.collidepoint(mouse_pos) or self.theme_dropdown.arrow_rect.collidepoint(mouse_pos):
-            clicked_btn = self.theme_dropdown.name
-            self.theme_dropdown.show = False if self.theme_dropdown.show else True
-            
-        elif self.theme_dropdown.show:
-            for i, rect in enumerate(self.theme_dropdown.sub_rect):
-                if rect.collidepoint(mouse_pos):
-                    clicked_btn = f"{self.theme_dropdown.name}.{self.theme_dropdown.text[i].lower()}"
-                    settings.theme_name = self.theme_dropdown.text[i].lower()
-                    self.theme_dropdown.get_index(settings.theme_name)
-                    change = True
-
-        else:
-            return
+        flag = False
         
-        if change:
-            self.theme_dropdown.show = False
+        for _, _, dropdown in self.dropdowns:
+            if self.hovering == dropdown.name: 
+                dropdown.show = False if dropdown.show else True
+                flag = True
+                break
+        
+        if not flag:
+            if self.theme_dropdown.hovering: 
+                settings.theme_name = self.theme_dropdown.hovering
+                self.theme_dropdown.clicked(settings.theme_name)
+                
+            elif self.fps_dropdown.hovering: 
+                settings.fps = int(self.fps_dropdown.hovering)        
+                self.fps_dropdown.clicked(settings.fps)
+            
             settings.save()
             config.update()
             
-        logger.debug(f"Clicked {clicked_btn} button")
+        logger.debug(f"Clicked {self.hovering}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
         
@@ -93,17 +97,20 @@ class SettingsScreen:
             self._handle_dropdown_hovered(mouse_pos)
         
         if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
-            self._handle_dropdown_clicked(mouse_pos)
+            self._handle_dropdown_clicked()
             
     #   ==========[ UPDATE ]==========
     def _update_text(self) -> None:
         
         self.title_surf = config.font["title"].render("Settings", True, config.main_clr)
-        self.theme_title_surf = config.font["main"].render("Theme", True, config.main_clr)
+        self.dropdowns[0][0] = config.font["head"].render("Theme", True, config.main_clr)
+        self.dropdowns[1][0] = self.fps_title_surf = config.font["head"].render("Frame Rate", True, config.main_clr)
     
     def update(self) -> None:
         
-        self.theme_dropdown.update(self.hovering)
+        for _, _, dropdown in self.dropdowns:
+            dropdown.update(self.hovering)
+        self._update_text()
     
     
     #   ==========[ DRAW ]==========
@@ -111,6 +118,10 @@ class SettingsScreen:
         
         screen.blit(self.title_surf, self.title_pos)    #   title
         
-        #   theme dropdown
-        screen.blit(self.theme_title_surf, self.theme_title_pos)
-        self.theme_dropdown.draw(screen)
+        #   dropdowns
+        for surf, pos, dropdown in self.dropdowns:
+            screen.blit(surf, pos)
+            dropdown.draw(screen)
+        
+        for _, _, dropdown in self.dropdowns:
+            dropdown.draw_sub(screen)

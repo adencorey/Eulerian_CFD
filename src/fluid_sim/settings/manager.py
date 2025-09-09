@@ -9,10 +9,11 @@ log = logging.getLogger(__name__)
 #   ==========[ SETTINGS ]==========
 class Settings:
 
-    def __init__(self, theme_name="dark", fps=60):
+    def __init__(self, theme_name="dark", fps=60, show_fps=False):
         
         self.theme_name = theme_name
         self.fps = fps
+        self.show_fps = show_fps
         self.load()
     
     #   method that acts like an attribute, returns the actual theme class
@@ -56,10 +57,12 @@ settings = Settings()
 #   ==========[ SETTINGS PRESETS ]==========
 DEFAULT = Settings(
     theme_name="dark",
-    fps=60
+    fps=60,
+    show_fps=False
 )
 
 PERFORMANCE = Settings(
     theme_name="dark",
-    fps=30
+    fps=30,
+    show_fps=True
 )

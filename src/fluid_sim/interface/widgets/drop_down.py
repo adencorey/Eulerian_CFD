@@ -14,7 +14,7 @@ class DropDown(Widget):
         
         super().__init__(name=name, rect=rect, text=text)
         
-        self.get_index(setting)
+        self.get_selected(setting)
         self.show = False
         self.hovering = None
         
@@ -24,33 +24,36 @@ class DropDown(Widget):
         for i in range(1, len(text) + 1):
             self.sub_rect.append(rect.copy().move(0, i * rect.height))
             
-    def get_index(self, setting) -> None:
+    def get_selected(self, setting) -> None:
         
-        for i, txt in enumerate(self.text):
+        for txt in self.text:
             #   if option in drop down matches setting
-            if txt.lower() == str(setting):
-                self.index = i
+            if txt == str(setting):
+                self.selected = txt
                 break
         try:
-            self.index  #   check if variable exists
+            self.selected  #   check if variable exists
         except NameError as e:
-            logger.warning(f"Unable to find the index with the correct setting, {e}")
-            self.index = 0
-
-        
-    def get_selected(self) -> str:
-        return self.text[self.index]
+            logger.warning(f"Unable to find selected setting, {e}")
+            self.selected = 0
     
+    def collide(self, mouse_pos) -> True | False:
+        return self.rect.collidepoint(mouse_pos) or self.arrow_rect.collidepoint(mouse_pos)
     
-    #   ==========[ UPDATE ]==========
-    def update(self, hovering:str) -> None:
+    def collide_sub(self, mouse_pos) -> True | False:
         
-        super().update(hovering)
-        for text in self.text:
-            if hovering == f"{self.name}.{text.lower()}":
-                self.hovering = text
-                return
+        if self.show:
+            for i, rect in enumerate(self.sub_rect):
+                if rect.collidepoint(mouse_pos):
+                    self.hovering = self.text[i]
+                    return True
         self.hovering = None
+        return False
+    
+    def clicked(self, setting) -> None:
+        
+        self.show = False
+        self.get_selected(setting)
 
 
     #   ==========[ DRAW ]==========
@@ -83,15 +86,11 @@ class DropDown(Widget):
         pg.draw.rect(screen, main_clr, rect, self.border)
         
         #   draw text
-        text_surf = config.font["body"].render(text, True, main_clr)
+        text_surf = config.font["body"].render(text.capitalize(), True, main_clr)
         text_rect = text_surf.get_rect(center=rect.center)
         screen.blit(text_surf, text_rect)
-            
     
-    def draw(self, screen:pg.Surface) -> None:
-        
-        self._draw_arrow(screen)
-        self._draw_block(screen, self.rect, self.get_selected())
+    def draw_sub(self, screen:pg.Surface) -> None:
         
         if self.show:
             for i, rect in enumerate(self.sub_rect):
@@ -100,3 +99,8 @@ class DropDown(Widget):
                 else:
                     main_clr, bg_clr = config.main_clr, config.bg_clr
                 self._draw_block(screen, rect, self.text[i], main_clr, bg_clr)
+    
+    def draw(self, screen:pg.Surface) -> None:
+        
+        self._draw_arrow(screen)
+        self._draw_block(screen, self.rect, self.selected)
