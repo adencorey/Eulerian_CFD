@@ -3,9 +3,9 @@ from pygame._sdl2.video import Window
 
 import logging
 
-import fluid_sim.logger as log
+import fluid_sim.utilities.logger as log
+from fluid_sim.interface.config import config
 from fluid_sim.app import App
-from fluid_sim.settings.manager import Settings
 
 def main() -> None:
     
@@ -18,12 +18,12 @@ def main() -> None:
     window.resizable = False
     pg.display.set_caption("Eulerian CFD")
     logger.info("Initialised Pygame")
+
+    #   initialise config
+    config.__init__(screen.get_width(), screen.get_height())
+    logger.info("Initialised interface config")
     
-    #   load user settings
-    settings = Settings()
-    
-    
-    app = App(screen, settings=settings)
+    app = App(screen)
     app.run()
     
 if __name__ == "__main__":

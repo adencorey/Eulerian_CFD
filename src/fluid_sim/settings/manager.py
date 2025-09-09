@@ -50,7 +50,7 @@ class Settings:
                 log.warning(f"Failed to read file, file may be corrupted ({e}) ")
         else:
             log.debug("Settings file not found, using default settings")
-
+settings = Settings()
 
 
 #   ==========[ SETTINGS PRESETS ]==========

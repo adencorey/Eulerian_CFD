@@ -2,15 +2,16 @@ import pygame as pg
 
 import logging
 
+from fluid_sim.settings.manager import settings
+from fluid_sim.interface.config import config
+
 logger = logging.getLogger(__name__)
 
 
 class LibraryScreen:
     
-    def __init__(self, width, height) -> None:
-        
-        self.screen_width = width
-        self.screen_height = height
+    def __init__(self) -> None:
+        pass
         
     def handle_events(self, event: pg.event) -> None:
         
@@ -22,4 +23,4 @@ class LibraryScreen:
     
     def draw(self, screen: pg.Surface) -> None:
         
-        pg.draw.circle(screen, (255, 0, 0), (self.screen_width // 2, self.screen_height // 2), 50)
+        pg.draw.circle(screen, (255, 0, 0), (config.width // 2, config.height // 2), 50)
