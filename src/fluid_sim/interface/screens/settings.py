@@ -3,7 +3,7 @@ import pygame as pg
 import logging
 
 from fluid_sim.settings.manager import settings
-from fluid_sim.interface.config import Widget, config
+from fluid_sim.interface.config import config
 from fluid_sim.interface.widgets import DropDown
 
 logger = logging.getLogger(__name__)
@@ -25,12 +25,18 @@ class SettingsScreen:
 
         #   ==========[ FPS SETTING ]==========
         self.fps_title_surf = config.font["head"].render("Frame Rate", True, config.main_clr)
-        self.fps_title_pos = self._get_grid(0, 2, title=True)
-        self.fps_dropdown = DropDown(name="fps-dropdown", rect=pg.Rect(self._get_grid(0, 2), self.dropdown_size), text=["30", "45", "60", "120"], setting=settings.fps)
+        self.fps_title_pos = self._get_grid(0, 3, title=True)
+        self.fps_dropdown = DropDown(name="fps-dropdown", rect=pg.Rect(self._get_grid(0, 3), self.dropdown_size), text=["30", "45", "60", "120"], setting=settings.fps)
+        
+        #   ==========[ SHOW FPS SETTING ]==========
+        self.show_fps_title_surf = config.font["head"].render("Show FPS", True, config.main_clr)
+        self.show_fps_title_pos = self._get_grid(0, 4, title=True)
+        self.show_fps_dropdown = DropDown(name="show-fps-dropdown", rect=pg.Rect(self._get_grid(0, 4), self.dropdown_size), text=["true", "false"], setting=settings.show_fps)
         
         self.dropdowns:list[list[pg.Surface, tuple, DropDown]] = [
             [self.theme_title_surf, self.theme_title_pos, self.theme_dropdown],
-            [self.fps_title_surf, self.fps_title_pos, self.fps_dropdown]
+            [self.fps_title_surf, self.fps_title_pos, self.fps_dropdown],
+            [self.show_fps_title_surf, self.show_fps_title_pos, self.show_fps_dropdown]
         ]
         self.hovering = None
         
@@ -51,8 +57,12 @@ class SettingsScreen:
 
         elif self.fps_dropdown.collide(mouse_pos):
             self.hovering = self.fps_dropdown.name
-        elif self.fps_dropdown.collide_sub(mouse_pos): self.hovering = f"{self.fps_dropdown.name}.{self.theme_dropdown.hovering}"
+        elif self.fps_dropdown.collide_sub(mouse_pos): self.hovering = f"{self.fps_dropdown.name}.{self.fps_dropdown.hovering}"
         
+        elif self.show_fps_dropdown.collide(mouse_pos):
+            self.hovering = self.show_fps_dropdown.name
+        elif self.show_fps_dropdown.collide_sub(mouse_pos): self.hovering = f"{self.show_fps_dropdown.name}.{self.show_fps_dropdown.hovering}"
+                
         else:
             self.hovering = None
             
@@ -82,6 +92,10 @@ class SettingsScreen:
                 settings.fps = int(self.fps_dropdown.hovering)        
                 self.fps_dropdown.clicked(settings.fps)
             
+            elif self.show_fps_dropdown.hovering:
+                settings.show_fps = self.show_fps_dropdown.hovering == "true"
+                self.show_fps_dropdown.clicked(settings.show_fps)
+            
             settings.save()
             config.update()
             
@@ -105,6 +119,7 @@ class SettingsScreen:
         self.title_surf = config.font["title"].render("Settings", True, config.main_clr)
         self.dropdowns[0][0] = config.font["head"].render("Theme", True, config.main_clr)
         self.dropdowns[1][0] = self.fps_title_surf = config.font["head"].render("Frame Rate", True, config.main_clr)
+        self.dropdowns[2][0] = self.show_fps_title_surf = config.font["head"].render("Show FPS", True, config.main_clr)
     
     def update(self) -> None:
         

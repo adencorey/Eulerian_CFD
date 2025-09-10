@@ -25,20 +25,13 @@ class DropDown(Widget):
             self.sub_rect.append(rect.copy().move(0, i * rect.height))
             
     def get_selected(self, setting) -> None:
-        
-        for txt in self.text:
-            #   if option in drop down matches setting
-            if txt == str(setting):
-                self.selected = txt
-                break
-        try:
-            self.selected  #   check if variable exists
-        except NameError as e:
-            logger.warning(f"Unable to find selected setting, {e}")
-            self.selected = 0
+        self.selected = str(setting).lower()
     
     def collide(self, mouse_pos) -> True | False:
-        return self.rect.collidepoint(mouse_pos) or self.arrow_rect.collidepoint(mouse_pos)
+        if self.rect.collidepoint(mouse_pos) or self.arrow_rect.collidepoint(mouse_pos):
+            self.hovering = None
+            return True
+        return False
     
     def collide_sub(self, mouse_pos) -> True | False:
         

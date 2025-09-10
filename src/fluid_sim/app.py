@@ -45,7 +45,7 @@ class App:
                     self.set_screen(AppScreens(event.screen_id))            
             
             self.current_screen.update()
-            self.tool_bar.update()
+            self.tool_bar.update(self.clock.get_fps())
 
             self.screen.fill(settings.theme.dark_bg)
             self.current_screen.draw(self.screen)

@@ -23,6 +23,9 @@ class ToolBar:
         self.quit_btn = QuitButton(pg.Rect(config.width - self.win_btn_width, 0, self.win_btn_width, self.win_btn_height))
         self.min_btn = RectButton(name="minimise-button", rect=pg.Rect(config.width - 2 * self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), text="_", font=config.font["sub"])
         
+        #   ==========[ FPS LABEL ]==========
+        self.fps_lbl_pos = int(0.01 * config.width), int(0.01 * config.height)
+        
         #   ==========[ SIDEBAR BUTTONS ]==========
         self.side_btn_len = 0.04 * config.width
         self.library_btn = SideBarButton(name="library-button", rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
@@ -88,13 +91,14 @@ class ToolBar:
     
     
     #   ==========[ UPDATE ]==========
-    def _update_text(self) -> None:
+    def _update_text(self, fps) -> None:
         
         self.title_surf = config.font["sub"].render("Eulerian CFD", True, settings.theme.main)
+        if settings.show_fps: self.fps_lbl_surf = config.font["sub"].render(f"FPS: {fps:.2f}", True, config.main_clr)
     
-    def update(self) -> None:
+    def update(self, fps) -> None:
         
-        self._update_text()
+        self._update_text(fps)
         self.quit_btn.update(self.hovering)
         self.min_btn.update(self.hovering)
         self.library_btn.update(self.hovering)
@@ -114,6 +118,9 @@ class ToolBar:
         #   draw window buttons
         self.quit_btn.draw(screen)
         self.min_btn.draw(screen)
+        
+        #   draw fps
+        if settings.show_fps: screen.blit(self.fps_lbl_surf, self.fps_lbl_pos)
         
         #   draw side bar buttons
         self.library_btn.draw(screen)

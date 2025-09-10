@@ -36,7 +36,7 @@ class Config:
             "head"  : pg.font.SysFont(self.font_name, int(0.03 * height)),
             "body"  : pg.font.SysFont(self.body_font_name, int(0.03 * height)),
             "par"   : pg.font.SysFont(self.body_font_name, int(0.02 * height)),
-            "sub"   : pg.font.SysFont(self.font_name, int(0.02 * height))
+            "sub"   : pg.font.SysFont(self.font_name, int(0.025 * height))
         }
         
         self.update()
