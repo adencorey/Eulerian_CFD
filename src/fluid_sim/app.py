@@ -42,7 +42,7 @@ class App:
                     self.running = False
                 
                 if event.type == Events.SCREEN_SWITCH:
-                    self.set_screen(AppScreens(event.screen_id))            
+                    self.set_screen(AppScreens(event.screen_id))
             
             self.current_screen.update()
             self.tool_bar.update(self.clock.get_fps())

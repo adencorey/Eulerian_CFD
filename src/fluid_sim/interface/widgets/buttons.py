@@ -1,6 +1,8 @@
 import pygame as pg
 import numpy as np
 
+from enum import Enum
+
 from fluid_sim.utilities.assets import load_image, recolour_image
 from fluid_sim.settings.manager import settings
 from fluid_sim.interface.config import config, Widget
@@ -8,33 +10,38 @@ from fluid_sim.interface.config import config, Widget
 
 class RectButton(Widget):
     
-    def __init__(self, name: str, rect: pg.Rect, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=None) -> None:
-        super().__init__(name, rect, colours, text, font)
+    def __init__(self, info:Enum, rect:pg.Rect, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=None) -> None:
+        super().__init__(info=info, rect=rect, colours=colours, text=text, font=font)
     
+    def draw(self, screen: pg.Surface) -> None:
+        
+        pg.draw.rect(screen, self.bg_clr, self.rect)
+        pg.draw.rect(screen, self.main_clr, self.rect, self.border)
+        super()._draw_text(screen)
+
+
+#   ==========[ WINDOW BUTTON ]==========
+class WindowButton(RectButton):
+    
+    def __init__(self, info:Enum, rect:pg.Rect, symbol:str) -> None:
+        super().__init__(info=info, rect=rect, text=symbol, font=config.font["sub"])
+        
+    def _update_colours(self, hvr_id:int, hl_id:int) -> None:
+        
+        super()._update_colours(hvr_id, hl_id)
+        if hvr_id == self.id: self.bg_clr = (255, 0, 0)
+        
     def draw(self, screen: pg.Surface) -> None:
         
         pg.draw.rect(screen, self.bg_clr, self.rect)
         super()._draw_text(screen)
 
-
-#   ==========[ QUIT BUTTON ]==========
-class QuitButton(RectButton):
-    
-    def __init__(self, rect) -> None:
-        super().__init__(name="quit-button", rect=rect, text="x", font=config.font["sub"])
-        
-    def _update_colours(self, hovering) -> None:
-        
-        super()._update_colours(hovering)
-        if hovering == self.name: self.bg_clr = (255, 0, 0)
-        
-
 #   ==========[ SIDEBAR BUTTON ]==========
 class SideBarButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, image:str) -> None:
+    def __init__(self, info:Enum, rect:pg.Rect, image:str) -> None:
         
-        super().__init__(name=name, rect=rect, text="?")
+        super().__init__(info=info, rect=rect, text="?")
         
         self.center = rect.center
         self.radius = int(0.45 * self.rect.width)
@@ -52,10 +59,10 @@ class SideBarButton(Widget):
             
     
     #   ==========[ UPDATE ]==========
-    def update(self, hovering:str) -> None:
+    def update(self, hvr_id:int, hl_id:int) -> None:
         
-        super().update(hovering)
-        self.hovering = True if hovering == self.name else False
+        super().update(hvr_id, hl_id)
+        self.hovering = True if hvr_id == self.id else False
                     
 
     def draw(self, screen:pg.Surface) -> None:

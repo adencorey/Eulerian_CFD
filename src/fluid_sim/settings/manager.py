@@ -16,7 +16,6 @@ class Settings:
         self.show_fps = show_fps
         self.load()
     
-    #   method that acts like an attribute, returns the actual theme class
     @property
     def path(self):
         return os.path.join("local", "settings.json")
@@ -25,6 +24,7 @@ class Settings:
         return THEME[self.theme_name]
         
     def save(self):
+        """save current settings to json file"""
         
         try:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)  #   make the directory /local/settings.json
@@ -38,6 +38,7 @@ class Settings:
             return False
         
     def load(self):
+        """load settinsg from json file"""
         
         #   if settings.json exists
         if os.path.exists(self.path):

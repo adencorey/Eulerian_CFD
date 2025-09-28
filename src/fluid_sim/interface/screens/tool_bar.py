@@ -3,8 +3,8 @@ import pygame as pg
 import logging
 
 from fluid_sim.settings.manager import settings
-from fluid_sim.interface.config import AppScreens, Events, Widget, config
-from fluid_sim.interface.widgets import RectButton, QuitButton, SideBarButton
+from fluid_sim.interface.config import AppScreens, AppWidgets, Events, config
+from fluid_sim.interface.widgets import RectButton, WindowButton, SideBarButton
 
 logger = logging.getLogger(__name__)
 
@@ -14,95 +14,110 @@ class ToolBar:
         
         self.win_btn_width = 0.03 * config.width
         self.win_btn_height = 0.02 * config.width
-        
+        self.side_btn_len = 0.04 * config.width
+
         #   ==========[ TITLE ]==========
         self.title_surf = config.font["sub"].render("Eulerian CFD", True, config.main_clr)
         self.title_rect = self.title_surf.get_rect(center = (config.width // 2, self.win_btn_height // 2))
         
         #   ==========[ WINDOW BUTTONS ]==========
-        self.quit_btn = QuitButton(pg.Rect(config.width - self.win_btn_width, 0, self.win_btn_width, self.win_btn_height))
-        self.min_btn = RectButton(name="minimise-button", rect=pg.Rect(config.width - 2 * self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), text="_", font=config.font["sub"])
+        self.quit_btn = WindowButton(info=AppWidgets.QUIT_BTN, rect=pg.Rect(config.width - self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="x")
+        self.min_btn = WindowButton(info=AppWidgets.MIN_BTN, rect=pg.Rect(config.width - 2 * self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="_")
         
         #   ==========[ FPS LABEL ]==========
-        self.fps_lbl_pos = int(0.01 * config.width), int(0.01 * config.height)
+        self.fps_lbl_pos = int(0.01 * config.width + self.side_btn_len), int(0.01 * config.height)
         
         #   ==========[ SIDEBAR BUTTONS ]==========
-        self.side_btn_len = 0.04 * config.width
-        self.library_btn = SideBarButton(name="library-button", rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
-        self.settings_btn = SideBarButton(name="settings-button", rect=pg.Rect(0, config.height - self.side_btn_len, self.side_btn_len, self.side_btn_len), image="settings.png")
+        self.library_btn = SideBarButton(info=AppWidgets.LIBRARY_BTN, rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
+        self.settings_btn = SideBarButton(info=AppWidgets.SETTINGS_BTN, rect=pg.Rect(0, config.height - self.side_btn_len, self.side_btn_len, self.side_btn_len), image="settings.png")
         
-        #   hover identifier
-        self.hovering = None
+        self.buttons: list[WindowButton | RectButton | SideBarButton] = [
+            self.quit_btn,
+            self.min_btn,
+            self.library_btn,
+            self.settings_btn
+        ]
+        
+        self.hvr_name, self.hvr_id = None, None
+        self.hl_id = self.library_btn.id
         
         
     #   ==========[ EVENT HANDLING ]==========
-    def __handle_button_hovered(self, mouse_pos: tuple) -> None:
+    def _handle_button_hovered(self, mouse_pos: tuple) -> None:
+        """checks if mouse is colliding with a button"""
         
-        old_hover = self.hovering
+        hvr_name = self.hvr_name
         
-        if self.quit_btn.rect.collidepoint(mouse_pos): self.hovering = self.quit_btn.name
-        elif self.min_btn.rect.collidepoint(mouse_pos): self.hovering = self.min_btn.name
-        elif self.library_btn.collide(mouse_pos): self.hovering = self.library_btn.name
-        elif self.settings_btn.collide(mouse_pos): self.hovering = self.settings_btn.name       
-        else: self.hovering = None
-        
-        if old_hover != self.hovering:
-            logger.debug(f"Hovering {self.hovering}")
-    
-    def __handle_button_clicked(self, mouse_pos: tuple) -> str | None:
-        
-        clicked_btn = None
-        extra_data = {}
         if self.quit_btn.rect.collidepoint(mouse_pos):
-            clicked_btn = self.quit_btn.name
-            event = Events.QUIT_PROGRAM
-        
-        elif self.min_btn.rect.collidepoint(mouse_pos):
-            clicked_btn = self.quit_btn.name
-            event = None
-            pg.display.iconify()
+            self.hvr_name, self.hvr_id = self.quit_btn.name, self.quit_btn.id
             
-        elif self.library_btn.collide(mouse_pos):
-            clicked_btn = self.library_btn.name
-            event = Events.SCREEN_SWITCH
-            extra_data = {"screen_id": AppScreens.LIBRARY}
-        
+        elif self.min_btn.rect.collidepoint(mouse_pos): 
+            self.hvr_name, self.hvr_id = self.min_btn.name, self.min_btn.id
+            
+        elif self.library_btn.collide(mouse_pos): 
+            self.hvr_name, self.hvr_id = self.library_btn.name, self.library_btn.id
+            
         elif self.settings_btn.collide(mouse_pos):
-            clicked_btn = self.settings_btn.name
-            event = Events.SCREEN_SWITCH
-            extra_data = {"screen_id": AppScreens.SETTINGS.value}
+            self.hvr_name, self.hvr_id = self.settings_btn.name, self.settings_btn.id
+            
+        else: self.hvr_name, self.hvr_id = None, None
         
-        else:
-            return
-        logger.debug(f"Clicked {clicked_btn} button")
+        if hvr_name != self.hvr_name:
+            logger.debug(f"Hovering {self.hvr_name}")
+    
+    def _handle_button_clicked(self) -> str | None:
+        """calls function if a button is clicked"""
+        
+        if not self.hvr_name: return
+        
+        event = None
+        extra_data = {}
+        
+        match self.hvr_id:
+            
+            case self.quit_btn.id:
+                event = Events.QUIT_PROGRAM
+                
+            case self.min_btn.id:
+                pg.display.iconify()
+                
+            case self.library_btn.id:
+                event = Events.SCREEN_SWITCH
+                extra_data = {"screen_id": AppScreens.LIBRARY.value}
+                self.hl_id = self.library_btn.id
+                
+            case self.settings_btn.id:
+                event = Events.SCREEN_SWITCH
+                extra_data = {"screen_id": AppScreens.SETTINGS.value}
+                self.hl_id = self.settings_btn.id
+            case _:
+                return
+            
+        logger.debug(f"Clicked {self.hvr_name   }")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
     def handle_events(self, event: pg.event.Event) -> None:
         
         mouse_pos: tuple = pg.mouse.get_pos()
         
-        #   if mouse movement is detected
         if event.type == pg.MOUSEMOTION:
-            self.__handle_button_hovered(mouse_pos)
-        
-        #   if left button is pressed
+            self._handle_button_hovered(mouse_pos)
         if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
-            self.__handle_button_clicked(mouse_pos)
+            self._handle_button_clicked()
     
     
     #   ==========[ UPDATE ]==========
     def _update_text(self, fps) -> None:
+        """update colour / value of texts"""
         
         self.title_surf = config.font["sub"].render("Eulerian CFD", True, settings.theme.main)
         if settings.show_fps: self.fps_lbl_surf = config.font["sub"].render(f"FPS: {fps:.2f}", True, config.main_clr)
     
-    def update(self, fps) -> None:
+    def update(self, fps:float) -> None:
         
         self._update_text(fps)
-        self.quit_btn.update(self.hovering)
-        self.min_btn.update(self.hovering)
-        self.library_btn.update(self.hovering)
-        self.settings_btn.update(self.hovering)
+        for button in self.buttons:
+            button.update(self.hvr_id, self.hl_id)
          
     
     #   ==========[ DRAW ]==========
@@ -115,13 +130,9 @@ class ToolBar:
         #   draw title
         screen.blit(self.title_surf, self.title_rect)
         
-        #   draw window buttons
-        self.quit_btn.draw(screen)
-        self.min_btn.draw(screen)
-        
         #   draw fps
         if settings.show_fps: screen.blit(self.fps_lbl_surf, self.fps_lbl_pos)
         
-        #   draw side bar buttons
-        self.library_btn.draw(screen)
-        self.settings_btn.draw(screen)
+        #   draw buttons
+        for button in self.buttons:
+            button.draw(screen)

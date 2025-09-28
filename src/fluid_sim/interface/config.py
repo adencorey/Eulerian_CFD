@@ -11,6 +11,23 @@ class AppScreens(Enum):
     LIBRARY = 0
     SETTINGS = 1
     CANVAS = 2
+    
+#   ===========[ WIDGET IDs ]==========
+class AppWidgets(Enum):
+    
+    #   tool bar
+    QUIT_BTN = 0
+    MIN_BTN = 1
+    LIBRARY_BTN = 2
+    SETTINGS_BTN = 3
+
+    #   library
+    CREATE_BTN = 4
+
+    #   settings
+    THEME_DROP = 5
+    FPS_DROP = 6
+    SHOW_FPS_DROP = 7
 
 
 #   ==========[ CUSTOM PYGAME EVENT IDs ]==========
@@ -44,7 +61,7 @@ class Config:
     def update(self) -> None:
         
         theme = settings.theme
-        self.main_clr, self.bg_clr = theme.main, theme.light_bg
+        self.main_clr, self.secondary_clr, self.bg_clr = theme.main, theme.secondary, theme.light_bg
         self.hl_clr, self.hvr_clr = theme.highlight, theme.hover
     
 config = Config()
@@ -53,12 +70,13 @@ config = Config()
 #   ==========[ WIDGET ]==========
 class Widget:
     
-    def __init__(self, name:str, rect:pg.Rect, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=config.font["body"]) -> None:
+    def __init__(self, info:Enum, rect:pg.Rect, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=None) -> None:
         
-        self.name = name
+        self.name = info.name.lower()
+        self.id = info.value
         self.rect = rect
         self.text = text
-        self.font = font
+        self.font = font if font else config.font["body"]
         self.border = int(0.05 * self.rect.height)
         self.main_clr, self.bg_clr = colours if colours else config.main_clr, config.bg_clr
         
@@ -68,9 +86,13 @@ class Widget:
     
 
     #   ==========[ UPDATE ]==========
-    def _update_colours(self, hovering:str) -> None:
+    def _update_colours(self, hvr_id:int, hl_id:int) -> None:
         
-        if hovering == self.name:
+        if hl_id == self.id:
+            self.main_clr, self.bg_clr = config.secondary_clr, config.bg_clr
+            return
+        
+        if hvr_id == self.id:
             self.main_clr, self.bg_clr = config.hl_clr, config.hvr_clr
         else:
             self.main_clr, self.bg_clr = config.main_clr, config.bg_clr
@@ -79,9 +101,9 @@ class Widget:
         
         self.text_surf = self.font.render(self.text, True, self.main_clr)
         
-    def update(self, hovering:str) -> None:
+    def update(self, hvr_id:int, hl_id:int) -> None:
         
-        self._update_colours(hovering)
+        self._update_colours(hvr_id, hl_id)
         if self.text and isinstance(self.text, str): self._update_text()
         
     

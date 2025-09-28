@@ -1,18 +1,16 @@
 import pygame as pg
 import numpy as np
 
-import logging
+from enum import Enum
 
-from fluid_sim.settings.manager import settings
 from fluid_sim.interface.config import config, Widget
 
-logger = logging.getLogger(__name__)
 
 class DropDown(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, text:list[str], setting) -> None:
+    def __init__(self, info:Enum, rect:pg.Rect, text:list[str], setting) -> None:
         
-        super().__init__(name=name, rect=rect, text=text)
+        super().__init__(info=info, rect=rect, text=text)
         
         self.get_selected(setting)
         self.show = False
@@ -85,13 +83,12 @@ class DropDown(Widget):
     
     def draw_sub(self, screen:pg.Surface) -> None:
         
-        if self.show:
-            for i, rect in enumerate(self.sub_rect):
-                if self.hovering == self.text[i]:
-                    main_clr, bg_clr = config.hl_clr, config.hvr_clr
-                else:
-                    main_clr, bg_clr = config.main_clr, config.bg_clr
-                self._draw_block(screen, rect, self.text[i], main_clr, bg_clr)
+        for i, rect in enumerate(self.sub_rect):
+            if self.hovering == self.text[i]:
+                main_clr, bg_clr = config.hl_clr, config.hvr_clr
+            else:
+                main_clr, bg_clr = config.main_clr, config.bg_clr
+            self._draw_block(screen, rect, self.text[i], main_clr, bg_clr)
     
     def draw(self, screen:pg.Surface) -> None:
         
