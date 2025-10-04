@@ -4,8 +4,8 @@ import logging
 import sys
 
 from fluid_sim.settings.manager import settings
-from fluid_sim.interface.config import AppScreens, Events, config
-from fluid_sim.interface.screens import ToolBar, LibraryScreen, SettingsScreen
+from fluid_sim.interface.config import AppScreens, Events
+from fluid_sim.interface.screens import ToolBar, LibraryScreen, SettingsScreen, CreateProjectScreen
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,12 @@ class App:
         
         match app_screen:
             
-            case AppScreens.LIBRARY:
+            case AppScreens.LIBRARY.value:
                 self.current_screen = LibraryScreen()
-            case AppScreens.SETTINGS:
+            case AppScreens.SETTINGS.value:
                 self.current_screen = SettingsScreen()
+            case AppScreens.CREATE_PROJECT.value:
+                self.current_screen = CreateProjectScreen()
                 
     #   mainloop
     def run(self):
@@ -42,7 +44,7 @@ class App:
                     self.running = False
                 
                 if event.type == Events.SCREEN_SWITCH:
-                    self.set_screen(AppScreens(event.screen_id))
+                    self.set_screen(event.screen_id)
             
             self.current_screen.update()
             self.tool_bar.update(self.clock.get_fps())

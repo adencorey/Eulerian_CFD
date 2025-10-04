@@ -4,21 +4,14 @@ import numpy as np
 from enum import Enum
 
 from fluid_sim.utilities.assets import load_image, recolour_image
-from fluid_sim.settings.manager import settings
-from fluid_sim.interface.config import config, Widget
+from fluid_sim.interface.config import config, AppWidgets, Widget
         
 
 class RectButton(Widget):
     
     def __init__(self, info:Enum, rect:pg.Rect, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=None) -> None:
         super().__init__(info=info, rect=rect, colours=colours, text=text, font=font)
-    
-    def draw(self, screen: pg.Surface) -> None:
         
-        pg.draw.rect(screen, self.bg_clr, self.rect)
-        pg.draw.rect(screen, self.main_clr, self.rect, self.border)
-        super()._draw_text(screen)
-
 
 #   ==========[ WINDOW BUTTON ]==========
 class WindowButton(RectButton):
@@ -29,7 +22,7 @@ class WindowButton(RectButton):
     def _update_colours(self, hvr_id:int, hl_id:int) -> None:
         
         super()._update_colours(hvr_id, hl_id)
-        if hvr_id == self.id: self.bg_clr = (255, 0, 0)
+        if hvr_id == self.id and self.id == AppWidgets.QUIT_BTN.value: self.bg_clr = (255, 0, 0)
         
     def draw(self, screen: pg.Surface) -> None:
         

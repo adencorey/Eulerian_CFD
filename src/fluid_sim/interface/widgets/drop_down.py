@@ -3,48 +3,62 @@ import numpy as np
 
 from enum import Enum
 
-from fluid_sim.interface.config import config, Widget
+from fluid_sim.interface.config import Widget, NULLWIDGET, config
 
 
-class DropDown(Widget):
+class Dropdown(Widget):
     
-    def __init__(self, info:Enum, rect:pg.Rect, text:list[str], setting) -> None:
+    def __init__(self, info:Enum, rect:pg.Rect, options:list[str], setting) -> None:
         
-        super().__init__(info=info, rect=rect, text=text)
+        self.text = self.get_selected(setting)
+        super().__init__(info=info, rect=rect, text=self.text)
         
-        self.get_selected(setting)
         self.show = False
-        self.hovering = None
+        self.hovering: DropdownChild = NULLWIDGET
         
-        #   initialise other rects
         self.arrow_rect = pg.Rect(self.rect.topright, (int(0.8 * self.rect.height), self.rect.height))
-        self.sub_rect: list[pg.Rect] = []
-        for i in range(1, len(text) + 1):
-            self.sub_rect.append(rect.copy().move(0, i * rect.height))
+        
+        self.children: list[DropdownChild] = []
+        for i in range(len(options)):
+            self.children.append(DropdownChild(
+                name=f"{self.name}.{options[i]}",
+                rect=rect.copy().move(0, (i + 1) * rect.height),
+                text=options[i].capitalize()
+            ))
+    
+    #   ==========[ UTILITIES ]==========
             
-    def get_selected(self, setting) -> None:
-        self.selected = str(setting).lower()
+    def get_selected(self, setting) -> str:
+        return str(setting).capitalize()
     
     def collide(self, mouse_pos) -> True | False:
         if self.rect.collidepoint(mouse_pos) or self.arrow_rect.collidepoint(mouse_pos):
-            self.hovering = None
+            self.hovering = NULLWIDGET
             return True
         return False
     
     def collide_sub(self, mouse_pos) -> True | False:
         
         if self.show:
-            for i, rect in enumerate(self.sub_rect):
-                if rect.collidepoint(mouse_pos):
-                    self.hovering = self.text[i]
+            for child in self.children:
+                if child.collide(mouse_pos):
+                    self.hovering = child
                     return True
-        self.hovering = None
+        self.hovering = NULLWIDGET
         return False
     
     def clicked(self, setting) -> None:
         
         self.show = False
-        self.get_selected(setting)
+        self.text = self.get_selected(setting)
+        
+        
+    #   ==========[ UPDATE ==========    
+    def update(self, hvr_id:int):
+        
+        super().update(hvr_id, -1)
+        for child in self.children:
+            child.update(self.hovering.name, "None")
 
 
     #   ==========[ DRAW ]==========
@@ -66,31 +80,30 @@ class DropDown(Widget):
             points.append(coord.astype(np.int16))
             
         pg.draw.polygon(screen, self.main_clr, points)
-        
-    def _draw_block(self, screen:pg.Surface, rect:pg.Rect, text:str, main_clr=None, bg_clr=None) -> None:
-        
-        if not main_clr: main_clr = self.main_clr
-        if not bg_clr: bg_clr = self.bg_clr
-        
-        #   draw rect
-        pg.draw.rect(screen, bg_clr, rect)
-        pg.draw.rect(screen, main_clr, rect, self.border)
-        
-        #   draw text
-        text_surf = config.font["body"].render(text.capitalize(), True, main_clr)
-        text_rect = text_surf.get_rect(center=rect.center)
-        screen.blit(text_surf, text_rect)
     
-    def draw_sub(self, screen:pg.Surface) -> None:
+    def draw_children(self, screen:pg.Surface) -> None:
         
-        for i, rect in enumerate(self.sub_rect):
-            if self.hovering == self.text[i]:
-                main_clr, bg_clr = config.hl_clr, config.hvr_clr
-            else:
-                main_clr, bg_clr = config.main_clr, config.bg_clr
-            self._draw_block(screen, rect, self.text[i], main_clr, bg_clr)
+        for child in self.children:
+            child.draw(screen)
     
-    def draw(self, screen:pg.Surface) -> None:
+    def draw_parent(self, screen:pg.Surface) -> None:
         
         self._draw_arrow(screen)
-        self._draw_block(screen, self.rect, self.selected)
+        self.draw(screen)
+        
+        
+class DropdownChild(Widget):
+    
+    def __init__(self, name:str, rect:pg.Rect, text:str) -> None:
+        super().__init__(info=None, rect=rect, text=text)
+        
+        self.name = name
+        
+    def _update_colours(self, hvr_name, hl_name):
+
+        if self.name == hl_name:
+            self.main_clr, self.bg_clr = config.secondary_clr, config.bg_clr
+        elif self.name == hvr_name:
+            self.main_clr, self.bg_clr = config.hl_clr, config.hvr_clr
+        else:
+            self.main_clr, self.bg_clr = config.main_clr, config.bg_clr

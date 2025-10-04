@@ -3,7 +3,7 @@ import pygame as pg
 import logging
 
 from fluid_sim.settings.manager import settings
-from fluid_sim.interface.config import AppScreens, AppWidgets, Events, config
+from fluid_sim.interface.config import AppScreens, AppWidgets, Events, Widget, NULLWIDGET, config
 from fluid_sim.interface.widgets import RectButton, WindowButton, SideBarButton
 
 logger = logging.getLogger(__name__)
@@ -38,42 +38,40 @@ class ToolBar:
             self.settings_btn
         ]
         
-        self.hvr_name, self.hvr_id = None, None
-        self.hl_id = self.library_btn.id
+        self.hovering:Widget = NULLWIDGET
+        self.highlight:Widget = self.library_btn
         
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_button_hovered(self, mouse_pos: tuple) -> None:
         """checks if mouse is colliding with a button"""
         
-        hvr_name = self.hvr_name
+        hovering = self.hovering
+        hovered = False
+
+        #   loop through every button and detect collision with mouse pos
+        for button in self.buttons:
+            if button.collide(mouse_pos):
+                self.hovering = button
+                hovered = True
+                break
+        if not hovered: self.hovering = NULLWIDGET
         
-        if self.quit_btn.rect.collidepoint(mouse_pos):
-            self.hvr_name, self.hvr_id = self.quit_btn.name, self.quit_btn.id
-            
-        elif self.min_btn.rect.collidepoint(mouse_pos): 
-            self.hvr_name, self.hvr_id = self.min_btn.name, self.min_btn.id
-            
-        elif self.library_btn.collide(mouse_pos): 
-            self.hvr_name, self.hvr_id = self.library_btn.name, self.library_btn.id
-            
-        elif self.settings_btn.collide(mouse_pos):
-            self.hvr_name, self.hvr_id = self.settings_btn.name, self.settings_btn.id
-            
-        else: self.hvr_name, self.hvr_id = None, None
-        
-        if hvr_name != self.hvr_name:
-            logger.debug(f"Hovering {self.hvr_name}")
+        if hovering != self.hovering:
+            logger.debug(f"Hovering {self.hovering.name}")
     
     def _handle_button_clicked(self) -> str | None:
         """calls function if a button is clicked"""
         
-        if not self.hvr_name: return
+        if not self.hovering.name: return
         
         event = None
         extra_data = {}
         
-        match self.hvr_id:
+        match self.hovering.id:
+            
+            case self.highlight.id:
+                return
             
             case self.quit_btn.id:
                 event = Events.QUIT_PROGRAM
@@ -84,16 +82,16 @@ class ToolBar:
             case self.library_btn.id:
                 event = Events.SCREEN_SWITCH
                 extra_data = {"screen_id": AppScreens.LIBRARY.value}
-                self.hl_id = self.library_btn.id
+                self.highlight = self.library_btn
                 
             case self.settings_btn.id:
                 event = Events.SCREEN_SWITCH
                 extra_data = {"screen_id": AppScreens.SETTINGS.value}
-                self.hl_id = self.settings_btn.id
+                self.highlight = self.settings_btn
             case _:
                 return
             
-        logger.debug(f"Clicked {self.hvr_name   }")
+        logger.debug(f"Clicked {self.hovering.name}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
     def handle_events(self, event: pg.event.Event) -> None:
@@ -110,22 +108,22 @@ class ToolBar:
     def _update_text(self, fps) -> None:
         """update colour / value of texts"""
         
-        self.title_surf = config.font["sub"].render("Eulerian CFD", True, settings.theme.main)
+        self.title_surf = config.font["sub"].render("Eulerian CFD", True, config.main_clr)
         if settings.show_fps: self.fps_lbl_surf = config.font["sub"].render(f"FPS: {fps:.2f}", True, config.main_clr)
     
     def update(self, fps:float) -> None:
         
         self._update_text(fps)
         for button in self.buttons:
-            button.update(self.hvr_id, self.hl_id)
+            button.update(self.hovering.id, self.highlight.id)
          
     
     #   ==========[ DRAW ]==========
     def draw(self, screen: pg.Surface) -> None:
         
         #   draw tool bar background
-        pg.draw.rect(screen, settings.theme.light_bg, (0, 0, config.width, self.win_btn_height))
-        pg.draw.rect(screen, settings.theme.light_bg, (0, 0, self.side_btn_len, config.height))
+        pg.draw.rect(screen, config.bg_clr, (0, 0, config.width, self.win_btn_height))
+        pg.draw.rect(screen, config.bg_clr, (0, 0, self.side_btn_len, config.height))
         
         #   draw title
         screen.blit(self.title_surf, self.title_rect)

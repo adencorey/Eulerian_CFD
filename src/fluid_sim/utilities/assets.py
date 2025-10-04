@@ -11,7 +11,7 @@ def load_image(filename: str) -> pg.Surface | None:
     
     filepath = os.path.join(ASSETS_PATH, "graphics", filename)
     if os.path.exists(filepath):
-        logger.info(f"Successfully fetched image from {filepath}")
+        logger.debug(f"Successfully fetched image from {filepath}")
         return pg.image.load(filepath).convert_alpha()
     
     else:
