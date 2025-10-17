@@ -10,7 +10,7 @@ def init() -> None:
         format="%(asctime)s [%(levelname)-7s] %(name)-40s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[
-            logging.FileHandler("./logs/fluid_sim.log", "w"),   #   save in file
+            logging.FileHandler("./logs/cfd.log", "w"),   #   save in file
             logging.StreamHandler()                             #   print out in console
         ]
     )

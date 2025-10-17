@@ -2,9 +2,9 @@ import pygame as pg
 
 import logging
 
-from fluid_sim.settings.manager import settings
-from fluid_sim.interface.config import AppScreens, AppWidgets, Events, Widget, NULLWIDGET, config
-from fluid_sim.interface.widgets import RectButton, WindowButton, SideBarButton
+from cfd.settings.manager import settings
+from cfd.interface.config import Events, Screens, config
+from cfd.interface.widgets import Widget, NULLWIDGET, RectButton, WindowButton, SideBarButton
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +21,15 @@ class ToolBar:
         self.title_rect = self.title_surf.get_rect(center = (config.width // 2, self.win_btn_height // 2))
         
         #   ==========[ WINDOW BUTTONS ]==========
-        self.quit_btn = WindowButton(info=AppWidgets.QUIT_BTN, rect=pg.Rect(config.width - self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="x")
-        self.min_btn = WindowButton(info=AppWidgets.MIN_BTN, rect=pg.Rect(config.width - 2 * self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="_")
+        self.quit_btn = WindowButton(name="quit_btn", rect=pg.Rect(config.width - self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="x")
+        self.min_btn = WindowButton(name="min_btn", rect=pg.Rect(config.width - 2 * self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="_")
         
         #   ==========[ FPS LABEL ]==========
         self.fps_lbl_pos = int(0.01 * config.width + self.side_btn_len), int(0.01 * config.height)
         
         #   ==========[ SIDEBAR BUTTONS ]==========
-        self.library_btn = SideBarButton(info=AppWidgets.LIBRARY_BTN, rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
-        self.settings_btn = SideBarButton(info=AppWidgets.SETTINGS_BTN, rect=pg.Rect(0, config.height - self.side_btn_len, self.side_btn_len, self.side_btn_len), image="settings.png")
+        self.library_btn = SideBarButton(name="lib_btn", rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
+        self.settings_btn = SideBarButton(name="settings_btn", rect=pg.Rect(0, config.height - self.side_btn_len, self.side_btn_len, self.side_btn_len), image="settings.png")
         
         self.buttons: list[WindowButton | RectButton | SideBarButton] = [
             self.quit_btn,
@@ -40,7 +40,7 @@ class ToolBar:
         
         self.hovering:Widget = NULLWIDGET
         self.highlight:Widget = self.library_btn
-        
+
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_button_hovered(self, mouse_pos: tuple) -> None:
@@ -81,12 +81,12 @@ class ToolBar:
                 
             case self.library_btn.id:
                 event = Events.SCREEN_SWITCH
-                extra_data = {"screen_id": AppScreens.LIBRARY.value}
+                extra_data["screen_id"] = Screens.LIBRARY.value
                 self.highlight = self.library_btn
                 
             case self.settings_btn.id:
                 event = Events.SCREEN_SWITCH
-                extra_data = {"screen_id": AppScreens.SETTINGS.value}
+                extra_data["screen_id"] = Screens.SETTINGS.value
                 self.highlight = self.settings_btn
             case _:
                 return

@@ -2,8 +2,8 @@ import pygame as pg
 
 import logging
 
-from fluid_sim.interface.config import AppWidgets, Events, Widget, config
-from fluid_sim.interface.widgets import RectButton
+from cfd.interface.config import AppWidgets, Events, Widget, config
+from cfd.interface.widgets import RectButton
 
 logger = logging.getLogger(__name__)
 

@@ -2,15 +2,16 @@ import os
 import json
 import logging
 
-from fluid_sim.settings.themes import THEME
+from cfd.settings.themes import THEME
 
 log = logging.getLogger(__name__)
 
 #   ==========[ SETTINGS ]==========
 class Settings:
 
-    def __init__(self, theme_name="dark", fps=60, show_fps=False):
+    def __init__(self, theme_name="dark", fps=60, show_fps=False) -> None:
         
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)  #   make the directory /local/settings.json
         self.theme_name = theme_name
         self.fps = fps
         self.show_fps = show_fps
@@ -23,11 +24,10 @@ class Settings:
     def theme(self):
         return THEME[self.theme_name]
         
-    def save(self):
+    def save(self) -> True | False:
         """save current settings to json file"""
         
         try:
-            os.makedirs(os.path.dirname(self.path), exist_ok=True)  #   make the directory /local/settings.json
             with open(self.path, "w") as file:
                 json.dump(self.__dict__, file, indent=4)    #   turns all attributes into a dictionary and store into settings.json
                 log.info("Settings successfully saved")
@@ -35,10 +35,13 @@ class Settings:
             
         except PermissionError as e:
             log.warning(f"File cannot be written, please enable permission to read/write files ({e})")
-            return False
+
+        except Exception as e:
+            log.warning(f"An error has occured when saving settings ({e})")
+        return False
         
-    def load(self):
-        """load settinsg from json file"""
+    def load(self) -> None:
+        """load settings from json file"""
         
         #   if settings.json exists
         if os.path.exists(self.path):

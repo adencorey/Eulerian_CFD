@@ -2,9 +2,9 @@ import pygame as pg
 
 import logging
 
-from fluid_sim.settings.manager import settings
-from fluid_sim.interface.config import AppWidgets, Widget, NULLWIDGET, config
-from fluid_sim.interface.widgets import Dropdown
+from cfd.settings.manager import settings
+from cfd.interface.config import config
+from cfd.interface.widgets import Widget, NULLWIDGET, Dropdown
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +21,17 @@ class SettingsScreen:
         #   ==========[ THEME SETTING ]==========
         self.theme_title_surf = config.font["head"].render("Theme", True, config.main_clr)
         self.theme_title_pos = self._get_grid(0, 1, title=True)
-        self.theme_dropdown = Dropdown(info=AppWidgets.THEME_DROP, rect=pg.Rect(self._get_grid(0, 1), self.dropdown_size), options=["light", "dark"], setting=settings.theme_name)
+        self.theme_dropdown = Dropdown(name="theme_drp", rect=pg.Rect(self._get_grid(0, 1), self.dropdown_size), options=["light", "dark"], setting=settings.theme_name)
 
         #   ==========[ FPS SETTING ]==========
         self.fps_title_surf = config.font["head"].render("Frame Rate", True, config.main_clr)
         self.fps_title_pos = self._get_grid(0, 3, title=True)
-        self.fps_dropdown = Dropdown(info=AppWidgets.FPS_DROP, rect=pg.Rect(self._get_grid(0, 3), self.dropdown_size), options=["30", "45", "60", "120"], setting=settings.fps)
+        self.fps_dropdown = Dropdown(name="fps_drp", rect=pg.Rect(self._get_grid(0, 3), self.dropdown_size), options=["30", "45", "60", "120"], setting=settings.fps)
         
         #   ==========[ SHOW FPS SETTING ]==========
         self.show_fps_title_surf = config.font["head"].render("Show FPS", True, config.main_clr)
         self.show_fps_title_pos = self._get_grid(0, 4, title=True)
-        self.show_fps_dropdown = Dropdown(info=AppWidgets.SHOW_FPS_DROP, rect=pg.Rect(self._get_grid(0, 4), self.dropdown_size), options=["true", "false"], setting=settings.show_fps)
+        self.show_fps_dropdown = Dropdown(name="shw_fps_drp", rect=pg.Rect(self._get_grid(0, 4), self.dropdown_size), options=["true", "false"], setting=settings.show_fps)
         
         self.dropdowns:list[list[Dropdown]] = [
             [self.theme_title_surf, self.theme_title_pos, self.theme_dropdown],
@@ -65,7 +65,7 @@ class SettingsScreen:
                 break
             
             #   check collision with sub blocks
-            elif dropdown.collide_sub(mouse_pos):
+            elif dropdown.collide_children(mouse_pos):
                 self.hovering = dropdown.hovering
                 hovered = True
                 break

@@ -3,9 +3,9 @@ from pygame._sdl2.video import Window
 
 import logging
 
-import fluid_sim.utilities.logger as log
-from fluid_sim.interface.config import config
-from fluid_sim.app import App
+import cfd.utilities.logger as log
+from cfd.interface.config import config
+from cfd.app import App
 
 def main() -> None:
     
@@ -29,5 +29,5 @@ def main() -> None:
 if __name__ == "__main__":
     
     log.init()
-    logger = logging.getLogger("fluid_sim.main")
+    logger = logging.getLogger("cfd.main")
     main()

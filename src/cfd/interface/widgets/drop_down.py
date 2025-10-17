@@ -3,15 +3,16 @@ import numpy as np
 
 from enum import Enum
 
-from fluid_sim.interface.config import Widget, NULLWIDGET, config
+from cfd.interface.config import config
+from cfd.interface.widgets.widget import Widget, NULLWIDGET
 
 
 class Dropdown(Widget):
     
-    def __init__(self, info:Enum, rect:pg.Rect, options:list[str], setting) -> None:
+    def __init__(self, name:str, rect:pg.Rect, options:list[str], setting) -> None:
         
         self.text = self.get_selected(setting)
-        super().__init__(info=info, rect=rect, text=self.text)
+        super().__init__(name=name, rect=rect, text=self.text)
         
         self.show = False
         self.hovering: DropdownChild = NULLWIDGET
@@ -37,7 +38,7 @@ class Dropdown(Widget):
             return True
         return False
     
-    def collide_sub(self, mouse_pos) -> True | False:
+    def collide_children(self, mouse_pos) -> True | False:
         
         if self.show:
             for child in self.children:
@@ -95,7 +96,7 @@ class Dropdown(Widget):
 class DropdownChild(Widget):
     
     def __init__(self, name:str, rect:pg.Rect, text:str) -> None:
-        super().__init__(info=None, rect=rect, text=text)
+        super().__init__(name=None, rect=rect, text=text)
         
         self.name = name
         

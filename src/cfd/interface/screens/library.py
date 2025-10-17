@@ -2,8 +2,9 @@ import pygame as pg
 
 import logging
 
-from fluid_sim.interface.config import AppWidgets, AppScreens, Events, NULLWIDGET, config
-from fluid_sim.interface.widgets import RectButton
+from cfd.interface.config import Events, Screens, config
+from cfd.interface.widgets import NULLWIDGET, Widget, RectButton, ProjectButton
+from cfd.utilities.files_manager import scan_projects
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +18,17 @@ class LibraryScreen:
         
         self.btn_dim = (0.15 * config.width, 0.04 * config.height)
         
-        # ==========[ BUTTONS ]==========
-        self.create_btn = RectButton(info=AppWidgets.CREATE_BTN, rect=pg.Rect(self._get_grid(0, 1), self.btn_dim), text="Create Project")
+        #   ==========[ BUTTONS ]==========
+        self.create_btn = RectButton(name="crt_proj_btn", rect=pg.Rect(self._get_grid(0, 1), self.btn_dim), text="Create Project")
         
+        #   ==========[ PROJECT ENTRIES ]==========
+        projects = scan_projects()        
         
         self.buttons: list[RectButton] = [
             self.create_btn
         ]
         
-        self.hovering = NULLWIDGET
+        self.hovering: Widget = NULLWIDGET
         
         
     def _get_grid(self, row, col, title=False) -> tuple[int, int]:
@@ -65,7 +68,7 @@ class LibraryScreen:
             
             case self.create_btn.id:
                 event = Events.SCREEN_SWITCH
-                extra_data = {"screen_id": AppScreens.CREATE_PROJECT.value}
+                extra_data["screen_id"] = Screens.CRT_PROJ.value
                 
             case _:
                 return
