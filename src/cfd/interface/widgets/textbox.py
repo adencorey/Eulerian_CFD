@@ -1,16 +1,14 @@
 import pygame as pg
 import numpy as np
 
-from enum import Enum
-
 from cfd.interface.config import config
-from cfd.interface.widgets.widget import Widget
+from .widget import Widget
 
 
 class TextBox(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, placeholder:str, max:int) -> None:
-        super().__init__(name=name, rect=rect, font=config.font["head"])
+    def __init__(self, name:str, rect:pg.Rect, placeholder:str, max:int, anchor:str=None) -> None:
+        super().__init__(name=name, rect=rect, anchor=anchor, font=config.font["head"])
         
         self.text = ""
         self.max = max
@@ -27,7 +25,7 @@ class TextBox(Widget):
         self.place_surf = self.font.render(self.placeholder, True, config.hvr_clr)
         self.place_rect = self.place_surf.get_rect(topleft=(self.rect.topleft + self.text_offset * np.array((1, 1), dtype=np.uint8)))
         
-    def update(self) -> None:
+    def update(self, hvr_id, hl_id) -> None:
         self._update_text()
         
         

@@ -4,19 +4,35 @@ from cfd.interface.config import registry, config
 
 class Widget:
     
-    def __init__(self, name:str, rect:pg.Rect, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=None) -> None:
+    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=None) -> None:
         
         self.name, self.id = registry.register(name) if name else (None, None)
         self.rect = rect
+        self.anchor = anchor
+        self.set_anchor()
         self.text = text
         self.font = font if font else config.font["body"]
-        self.border = int(0.05 * self.rect.height)
+        self.border = int(0.07 * self.font.get_height())
         self.main_clr, self.bg_clr = colours if colours else config.main_clr, config.bg_clr
             
         
     #   ==========[ UTILS ]==========
     def collide(self, mouse_pos) -> True | False:
         return self.rect.collidepoint(mouse_pos)
+    
+    def set_anchor(self) -> None:
+        
+        pos = self.rect.topleft
+        match self.anchor:
+            case "center": self.rect.center = pos
+            case "ne": self.rect.topright = pos
+            case "se": self.rect.bottomright = pos
+            case "sw": self.rect.bottomleft = pos
+            case "n": self.rect.centerx, self.rect.top = pos
+            case "e": self.rect.right, self.rect.centery = pos
+            case "s": self.rect.centerx, self.rect.bottom = pos
+            case "w": self.rect.left, self.rect.centery = pos
+            case _: pass          
     
 
     #   ==========[ UPDATE ]==========

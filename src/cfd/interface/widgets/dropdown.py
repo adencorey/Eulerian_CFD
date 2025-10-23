@@ -1,18 +1,16 @@
 import pygame as pg
 import numpy as np
 
-from enum import Enum
-
 from cfd.interface.config import config
-from cfd.interface.widgets.widget import Widget, NULLWIDGET
+from .widget import Widget, NULLWIDGET
 
 
 class Dropdown(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, options:list[str], setting) -> None:
+    def __init__(self, name:str, rect:pg.Rect, options:list[str], setting, anchor:str=None) -> None:
         
         self.text = self.get_selected(setting)
-        super().__init__(name=name, rect=rect, text=self.text)
+        super().__init__(name=name, rect=rect, anchor=anchor, text=self.text)
         
         self.show = False
         self.hovering: DropdownChild = NULLWIDGET
@@ -55,7 +53,7 @@ class Dropdown(Widget):
         
         
     #   ==========[ UPDATE ==========    
-    def update(self, hvr_id:int):
+    def update(self, hvr_id, hl_id):
         
         super().update(hvr_id, -1)
         for child in self.children:

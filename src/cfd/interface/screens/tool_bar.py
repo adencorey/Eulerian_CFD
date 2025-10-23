@@ -28,8 +28,8 @@ class ToolBar:
         self.fps_lbl_pos = int(0.01 * config.width + self.side_btn_len), int(0.01 * config.height)
         
         #   ==========[ SIDEBAR BUTTONS ]==========
-        self.library_btn = SideBarButton(name="lib_btn", rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
-        self.settings_btn = SideBarButton(name="settings_btn", rect=pg.Rect(0, config.height - self.side_btn_len, self.side_btn_len, self.side_btn_len), image="settings.png")
+        self.library_btn = SideBarButton(name="lib_scn_btn", rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
+        self.settings_btn = SideBarButton(name="settings_scn_btn", rect=pg.Rect(0, config.height - self.side_btn_len, self.side_btn_len, self.side_btn_len), image="settings.png")
         
         self.buttons: list[WindowButton | RectButton | SideBarButton] = [
             self.quit_btn,

@@ -1,17 +1,15 @@
 import pygame as pg
 import numpy as np
 
-from enum import Enum
-
 from cfd.utilities.assets import load_image, recolour_image
 from cfd.interface.config import registry, config
-from cfd.interface.widgets.widget import Widget
+from .widget import Widget
         
 
 class RectButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, colours:tuple[tuple, tuple]=None, text:str=None, font:pg.font.Font=None) -> None:
-        super().__init__(name=name, rect=rect, colours=colours, text=text, font=font)
+    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple=None, text:str=None, font:pg.font.Font=None) -> None:
+        super().__init__(name=name, rect=rect, anchor=anchor, colours=colours, text=text, font=font)
         
 
 #   ==========[ WINDOW BUTTON ]==========
@@ -33,8 +31,8 @@ class WindowButton(RectButton):
 #   ==========[ SIDEBAR BUTTON ]==========
 class SideBarButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, image:str) -> None:
-        super().__init__(name=name, rect=rect, text="?")
+    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, image:str=None) -> None:
+        super().__init__(name=name, rect=rect, anchor=anchor, text="?")
         
         self.center = rect.center
         self.radius = int(0.45 * self.rect.width)
@@ -71,16 +69,14 @@ class SideBarButton(Widget):
             self._draw_text(screen)
         
     def collide(self, mouse_pos) -> True | False:
-        
-        mx, my = mouse_pos
-        return (self.center[0] - mx) ** 2 + (self.center[1] - my) ** 2 <= (self.radius) ** 2
+        return (self.center[0] - mouse_pos[0]) ** 2 + (self.center[1] - mouse_pos[1]) ** 2 <= (self.radius) ** 2
     
 
 #   ==========[ PROJECT BUTTONS ]==========
 class ProjectButton(Widget):
     
-    def __init__(self, info, rect, text, metadata:dict):
-        super().__init__(info, rect, text, font=config.font["head"])
+    def __init__(self, name:str, rect:pg.Rect, text:str, metadata:dict[str, str]):
+        super().__init__(name=name, rect=rect, text=text, font=config.font["head"])
         
         self.metadata = metadata
         self.sub_font = config.font["sub"]
@@ -92,10 +88,13 @@ class ProjectButton(Widget):
         
         self.text_rect = self.text_surf.get_rect(topleft=self.rect.topleft + self.offset * np.array((1, 1)))
         self.sub_texts: list = []
-        for i in range(len(self.metadata)):
-            surf = self.sub_font.render(self.metadata[i], True, self.main_clr)
-            rect = surf.get_rect(bottomleft=self.rect.bottomleft + self.offset * np.array((i + 1, -1)))
-            self.sub_texts.append(surf, rect)
+        i = 0
+        for key, val in self.metadata.items():
+            text = f"{key.replace('_', ' ')}: {val}"
+            surf = self.sub_font.render(text, True, self.main_clr)
+            rect = surf.get_rect(bottomleft=self.rect.bottomleft + self.offset * np.array((1 + i, -1)))
+            self.sub_texts.append((surf, rect))
+            i += 50
     
     def _draw_text(self, screen):
         super()._draw_text(screen)

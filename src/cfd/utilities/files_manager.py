@@ -28,6 +28,7 @@ def load_json(filepath) -> dict:
     
     try:
         with open(filepath, "r") as file:
+            log.debug(f"Successfully loaded /{filepath}")
             return json.load(file)
     except ValueError as e:
         log.error(f"Cannot read from {filepath}, json may be corrupted ({e})")
@@ -53,17 +54,17 @@ def create_project(name:str, gravity:int) -> None:
         }
         
         try:
-            log.debug("Creating new project directory...")
             os.makedirs(filepath)
             create_json(os.path.join(filepath, "options.json"), options)
             create_json(os.path.join(filepath, "metadata.json"), metadata)
             return True               
         
         except FileExistsError:
-            log.warning(f"Project name {name} has already been taken")
+            log.warning(f"Project name {name} has already been taken, adding counter")
             return False
-        
+    
     if not name: name = "New Project"
+    log.debug(f"Creating project with name '{name}'...")
     if create_dir(name, gravity): return
     counter = 1
     while True:
@@ -72,12 +73,14 @@ def create_project(name:str, gravity:int) -> None:
         else:
             break
         
-def scan_projects() -> list[dict]:
+def scan_projects() -> list[dict[str, str|dict[str, str|int]]]:
     """scans all saved projects"""
     
+    log.debug(f"Scanning projects root /{SAVES_PATH}...")
     projects: list[dict] = []
     for entry in os.scandir(SAVES_PATH):
         if not entry.is_dir(): continue     #   skip if not a folder
+        log.debug(f"Found directory /{entry.path}")
         
         data = {
             "name": entry.name,
@@ -86,8 +89,10 @@ def scan_projects() -> list[dict]:
             "metadata": {}
         }
         
+        log.debug(f"Scanning files...")
         for item in os.scandir(entry.path):
             if not item.is_file(): continue
+            log.debug(f"Found file /{item.path}")
             
             #   read and load project files
             match item.name:
@@ -99,5 +104,9 @@ def scan_projects() -> list[dict]:
                 case "options.json": pass
                 case _: continue
         
-        if data["options"]: projects.append(data)
+        if data["metadata"]: 
+            log.info(f"{entry.name} is a project directory")
+            projects.append(data)
+        else:
+            log.warning(f"{entry.name} is not a project directory")
     return projects

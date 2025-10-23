@@ -43,6 +43,7 @@ class Events:
     QUIT_PROGRAM = pg.USEREVENT + 1
     SCREEN_SWITCH = pg.USEREVENT + 2
     KEYBOARD_INPUT = pg.USEREVENT + 3
+    CLEAR_INPUT = pg.USEREVENT + 4
 
 
 #   ==========[ CONFIGURATIONS ]==========
@@ -72,5 +73,4 @@ class Config:
         theme = settings.theme
         self.main_clr, self.secondary_clr, self.bg_clr = theme.main, theme.secondary, theme.light_bg
         self.hl_clr, self.hvr_clr = theme.highlight, theme.hover
-    
 config = Config()

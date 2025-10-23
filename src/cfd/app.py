@@ -40,6 +40,8 @@ class App:
             for event in pg.event.get():
                 self.tool_bar.handle_events(event)
                 self.current_screen.handle_events(event)
+                
+                if event.type == Events.CLEAR_INPUT: keyboard_inp = ""
                 if event.type == Events.KEYBOARD_INPUT: 
                     typing = True
                     max_char = event.max_char
@@ -64,8 +66,8 @@ class App:
             self.tool_bar.update(self.clock.get_fps())
 
             self.screen.fill(settings.theme.dark_bg)
-            self.current_screen.draw(self.screen)
             self.tool_bar.draw(self.screen)
+            self.current_screen.draw(self.screen)
             
             pg.display.update()
             self.clock.tick(settings.fps)
