@@ -1,9 +1,10 @@
 import pygame as pg
 
 import logging
+from itertools import chain
 
 from cfd.interface.config import Events, Screens, config
-from cfd.interface.widgets import NULLWIDGET, Widget, RectButton, ProjectButton
+from cfd.interface.widgets import NULLWIDGET, Widget, WidgetInfo, RectButton, ProjectButton
 from cfd.utilities.files_manager import scan_projects
 from cfd.utilities.screen_helper import get_grid, TITLE_POS
 
@@ -18,21 +19,32 @@ class LibraryScreen:
         self.btn_dim = (int(0.2 * config.width), int(0.05 * config.height))
         self.proj_dim = (int(0.5 * config.width), int(0.1 * config.height))
         
+        
         #   ==========[ BUTTONS ]==========
-        self.crt_btn = RectButton(name="crt_proj_scn_btn", rect=pg.Rect(get_grid(3, 8), self.btn_dim), text="Create Project")
+        self.crt_btn = RectButton(name="crt_proj_scn_btn", rect=pg.Rect(get_grid(3, 10), self.btn_dim), text="Create Project")
+        self.edit_btn = RectButton(name="edit_proj_scn_btn", rect=pg.Rect(get_grid(3, 15), self.btn_dim), text="Edit Project", disabled=True)
+        self.del_btn = RectButton(name="del_proj_btn", rect=pg.Rect(get_grid(3, 20), self.btn_dim), text="Delete Project", disabled=True)
+        self.alter_buttons: list[RectButton] = [self.edit_btn, self.del_btn]
         
         #   ==========[ PROJECT ENTRIES ]==========        
         project_entries = scan_projects()
-        projects: list[ProjectButton] = []
+        self.projects: list[ProjectButton] = []
         col = 7
         for project in project_entries:
-            name, _, _, metadata = project.values()
+            name, _, metadata = project.values()
             widget_name = f"{name.replace(' ', '-')}_proj_btn"
-            projects.append(ProjectButton(name=widget_name, rect=pg.Rect(get_grid(12, col), self.proj_dim), text=name, metadata=metadata))
+            self.projects.append(ProjectButton(name=widget_name, rect=pg.Rect(get_grid(12, col), self.proj_dim), text=name, metadata=metadata))
             col += 4
         
-        self.buttons: list[RectButton | ProjectButton] = [self.crt_btn] + projects
+        #   ==========[ PROJECT COUNT LABEL ]==========
+        num_proj = len(self.projects)
+        self.proj_count_info = WidgetInfo(name="proj_count_info", title=f"Project count ({num_proj}/5)", pos=get_grid(3, 8), description="Number of projects created, maximum 5 entries.")
+        if num_proj == 5: self.crt_btn.disabled = True
+        
+        self.buttons: list[RectButton | ProjectButton] = [self.crt_btn] + self.alter_buttons + self.projects
+        self.infos: list[WidgetInfo] = [self.proj_count_info]
         self.hovering: Widget = NULLWIDGET
+        self.highlighting: Widget = NULLWIDGET
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_hover(self, mouse_pos: tuple) -> None:
@@ -40,9 +52,9 @@ class LibraryScreen:
         
         hovering = self.hovering
         hovered = NULLWIDGET
-        for button in self.buttons:
-            if button.collide(mouse_pos):
-                hovered = button
+        for widget in chain(self.buttons, self.infos):
+            if widget.collide(mouse_pos):
+                hovered = widget
                 break
             
         self.hovering = hovered        
@@ -52,18 +64,39 @@ class LibraryScreen:
     def _handle_click(self) -> str | None:
         """calls function if a button is clicked"""
         
-        if not self.hovering.name: return
+        if not self.hovering.name:
+            self.highlighting = NULLWIDGET
+            for button in self.alter_buttons: 
+                button.disabled = True
+            return
         event = None
         extra_data = {}
+        clicked = False
         
-        match self.hovering.id:
-            
-            case self.crt_btn.id:
-                event = Events.SCREEN_SWITCH
-                extra_data["screen_id"] = Screens.CRT_PROJ.value
+        for project in self.projects:
+            if self.hovering.id == project.id:
+                self.highlighting = project
+                for button in self.alter_buttons:
+                    button.disabled = False
+                clicked = True
+                break
+        
+        if not clicked:
+            match self.hovering.id:
                 
-            case _:
-                return
+                case self.crt_btn.id:
+                    if not self.crt_btn.disabled:
+                        event = Events.SCREEN_SWITCH
+                        extra_data["screen_id"] = Screens.CRT_PROJ.value
+                
+                case self.edit_btn.id:
+                    if not self.edit_btn.disabled:
+                        event = Events.SCREEN_SWITCH
+                        extra_data["screen_id"] = Screens.EDIT_PROJ.value
+                        extra_data["highlighting"] = self.highlighting
+                    
+                case _:
+                    return
         logger.debug(f"Clicked {self.hovering.name}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
@@ -78,15 +111,9 @@ class LibraryScreen:
             
 
     #   ==========[ UPDATE ]==========
-    def _update_text(self, fps) -> None:
-        """update colour / value of texts"""
-        
-        self.title_surf = config.font["title"].render("Library", True, config.main_clr)
-    
     def update(self) -> None:
-        
-        for button in self.buttons:
-            button.update(self.hovering.id, -1)
+        for widget in chain(self.buttons, self.infos):
+            widget.update(self.hovering.id, self.highlighting.id)
     
     def draw(self, screen: pg.Surface) -> None:
         
@@ -94,5 +121,8 @@ class LibraryScreen:
         screen.blit(self.title_surf, TITLE_POS)
         
         #   draw buttons
-        for button in self.buttons:
-            button.draw(screen)
+        for widget in chain(self.buttons, self.infos):
+            widget.draw(screen)
+        for info in self.infos:
+            if self.hovering.id == info.id:
+                info.draw_description(screen)

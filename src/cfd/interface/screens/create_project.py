@@ -31,13 +31,13 @@ class CreateProjectScreen:
         self.grav_sb = Slidebar(name="grav_sb", rect=pg.Rect(get_grid(15, 17), self.sb_size), min_val=-1, max_val=5, step=0.1, default=1)
         
         #   ==========[ BACK BUTTON ]==========
-        self.back_btn = RectButton(name="canc_crt_proj_btn", rect=pg.Rect(get_grid(10, 25), self.btn_size), anchor="n", text="Cancel")
+        self.canc_btn = RectButton(name="canc_btn", rect=pg.Rect(get_grid(10, 25), self.btn_size), anchor="n", text="Cancel")
         
         #   ==========[ CREATE BUTTON ]==========
         self.crt_btn = RectButton(name="crt_proj_btn", rect=pg.Rect(get_grid(20, 25), self.btn_size), anchor="n", text="Create Project")
         
         
-        self.buttons: list[RectButton] = [self.back_btn, self.crt_btn]
+        self.buttons: list[RectButton] = [self.canc_btn, self.crt_btn]
         self.textboxes: list[TextBox] = [self.proj_textbox]
         self.slidebars: list[Slidebar] = [self.grav_sb]
         self.infos: list[WidgetInfo] = [self.proj_name_info, self.grav_info]
@@ -91,7 +91,7 @@ class CreateProjectScreen:
         if not clicked:
             match self.hovering.id:
                 
-                case self.back_btn.id:
+                case self.canc_btn.id:
                     event = Events.SCREEN_SWITCH
                     extra_data["screen_id"] = Screens.LIBRARY.value
                     
@@ -133,12 +133,7 @@ class CreateProjectScreen:
         self.selected.text = text
     
     
-    #   ==========[ UPDATE ]==========
-    def _update_text(self) -> None:
-        """update colour / value of texts"""
-        
-        self.title_surf = config.font["title"].render("None", True, config.main_clr)
-    
+    #   ==========[ UPDATE ]==========    
     def update(self) -> None:
         for widget in chain(self.buttons, self.textboxes, self.slidebars, self.infos):
             widget.update(self.hovering.id, -1)

@@ -8,8 +8,14 @@ from .widget import Widget
 
 class RectButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple=None, text:str=None, font:pg.font.Font=None) -> None:
+    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple=None, text:str=None, font:pg.font.Font=None, disabled=False) -> None:
         super().__init__(name=name, rect=rect, anchor=anchor, colours=colours, text=text, font=font)
+        self.disabled = disabled
+
+    def _update_colours(self, hvr_id, hl_id):
+        super()._update_colours(hvr_id, hl_id)
+        if self.disabled:
+            self.main_clr, self.bg_clr = config.hvr_clr, config.bg_clr
         
 
 #   ==========[ WINDOW BUTTON ]==========

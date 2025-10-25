@@ -51,7 +51,7 @@ class SettingsScreen:
                 break
             if isinstance(widget, Dropdown):
                 if widget.collide_children(mouse_pos):
-                    hovered = widget
+                    hovered = widget.hovering
                     break
 
         self.hovering = hovered
@@ -123,14 +123,16 @@ class SettingsScreen:
         
         screen.blit(self.title_surf, self.title_pos)    #   title
         
-        for widget in chain(self.dropdowns, self.infos):
+        for widget in chain(self.infos, self.dropdowns):
             if isinstance(widget, Dropdown):
                 widget.draw_parent(screen)
-                if widget.show:
-                    widget.draw_children(screen)
                 continue
             widget.draw(screen)
-                
+            
+        for dropdown in self.dropdowns:
+            if dropdown.show:
+                dropdown.draw_children(screen)
+                break                
 
         for info in self.infos:
             if self.hovering.id == info.id:

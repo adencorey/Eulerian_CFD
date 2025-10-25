@@ -5,7 +5,7 @@ import sys
 
 from cfd.settings.manager import settings
 from cfd.interface.config import Events, Screens
-from cfd.interface.screens import ToolBar, LibraryScreen, SettingsScreen, CreateProjectScreen
+from cfd.interface.screens import ToolBar, LibraryScreen, SettingsScreen, CreateProjectScreen, EditProjectScreen
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +20,14 @@ class App:
         self.current_screen = LibraryScreen()
         self.tool_bar = ToolBar()
         
-    def set_screen(self, screen_id) -> None:
+    def set_screen(self, screen_id, highlighting) -> None:
         
         if screen_id == Screens.LIBRARY.value:
             self.current_screen = LibraryScreen()
         elif screen_id == Screens.CRT_PROJ.value:
             self.current_screen = CreateProjectScreen()
+        elif screen_id == Screens.EDIT_PROJ.value:
+            self.current_screen = EditProjectScreen(highlighting)
         elif screen_id == Screens.SETTINGS.value:
             self.current_screen = SettingsScreen()
                 
@@ -50,7 +52,11 @@ class App:
                     self.running = False
                 
                 if event.type == Events.SCREEN_SWITCH:
-                    self.set_screen(event.screen_id)
+                    try:
+                        highlighting = event.highlighting
+                    except:
+                        highlighting = None
+                    self.set_screen(event.screen_id, highlighting)
                 
                 if typing and event.type == pg.KEYDOWN:
                     

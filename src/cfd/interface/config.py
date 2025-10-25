@@ -9,8 +9,9 @@ from cfd.settings.manager import settings
 class Screens(Enum):
     
     LIBRARY = 0
-    CRT_PROJ = 2
-    SETTINGS = 1
+    CRT_PROJ = 1
+    EDIT_PROJ = 2
+    SETTINGS = 3
 
     
 #   ==========[ OBJECT REGISTRY ]==========
