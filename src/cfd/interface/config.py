@@ -1,13 +1,15 @@
 import pygame as pg
 
 from enum import Enum
+import time
+from typing import Generator
+from types import FunctionType
 
 from cfd.settings.manager import settings
 
 
 #   ==========[ SCREEN IDs ]==========
 class Screens(Enum):
-    
     LIBRARY = 0
     CRT_PROJ = 1
     EDIT_PROJ = 2
@@ -45,6 +47,7 @@ class Events:
     SCREEN_SWITCH = pg.USEREVENT + 2
     KEYBOARD_INPUT = pg.USEREVENT + 3
     CLEAR_INPUT = pg.USEREVENT + 4
+    DELAY_FUNCTION = pg.USEREVENT + 5
 
 
 #   ==========[ CONFIGURATIONS ]==========
@@ -75,3 +78,21 @@ class Config:
         self.main_clr, self.secondary_clr, self.bg_clr = theme.main, theme.secondary, theme.light_bg
         self.hl_clr, self.hvr_clr = theme.highlight, theme.hover
 config = Config()
+
+
+#   ==========[ DELAY CLASS ]==========
+class Delay:
+    """async delay class"""
+    
+    def __init__(self, duration:float, action:FunctionType=None):
+        
+        self.start = time.time()
+        self.duration = duration
+        self.action = action
+    
+    def __iter__(self) -> Generator:
+        """check if timer is finished, pauses and yields back to main caller if not finished"""
+        
+        while time.time() - self.start <= self.duration:
+            if self.action: self.action()
+            yield

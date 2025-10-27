@@ -2,12 +2,32 @@ import pygame as pg
 
 import logging
 import sys
+from typing import Generator
 
 from cfd.settings.manager import settings
-from cfd.interface.config import Events, Screens
+from cfd.interface.config import Events, Screens, Delay
 from cfd.interface.screens import ToolBar, LibraryScreen, SettingsScreen, CreateProjectScreen, EditProjectScreen
 
 logger = logging.getLogger(__name__)
+
+class DelayQueue:
+    
+    def __init__(self) -> None:
+        self._delays: list[Delay] = []
+    
+    def update(self) -> None:
+        
+        exausted: list[Delay] = []
+        for delay in self._delays:
+            try:
+                next(delay)
+            except StopIteration:
+                exausted.append(delay)
+        for delay in exausted:
+            self._delays.remove(delay)
+    
+    def append(self, function:Generator) -> None:
+        self._delays.append(function)
 
 class App:
     
@@ -15,6 +35,7 @@ class App:
 
         self.running = True
         self.screen: pg.Surface = screen
+        self.delay_queue = DelayQueue()
 
         self.clock: pg.time.Clock = pg.time.Clock()
         self.current_screen = LibraryScreen()
@@ -43,7 +64,9 @@ class App:
                 self.tool_bar.handle_events(event)
                 self.current_screen.handle_events(event)
                 
-                if event.type == Events.CLEAR_INPUT: keyboard_inp = ""
+                if event.type == Events.CLEAR_INPUT: 
+                    keyboard_inp = ""
+                    
                 if event.type == Events.KEYBOARD_INPUT: 
                     typing = True
                     max_char = event.max_char
@@ -58,14 +81,17 @@ class App:
                         highlighting = None
                     self.set_screen(event.screen_id, highlighting)
                 
-                if typing and event.type == pg.KEYDOWN:
-                    
-                    if event.key == pg.K_BACKSPACE:
-                        keyboard_inp = keyboard_inp[:-1]
-                    elif len(keyboard_inp) < max_char:
-                        keyboard_inp += event.unicode
-
+                if typing:                
+                    if event.type == pg.KEYDOWN:
+                        if event.key == pg.K_BACKSPACE:
+                            keyboard_inp = keyboard_inp[:-1]
+                    if event.type == pg.TEXTINPUT:
+                        if len(keyboard_inp) < max_char:
+                            keyboard_inp += event.text
                     self.current_screen.handle_type(keyboard_inp)
+
+                if event.type == Events.DELAY_FUNCTION:
+                    self.delay_queue.append(event.function)
                     
             
             self.current_screen.update()
@@ -75,6 +101,7 @@ class App:
             self.tool_bar.draw(self.screen)
             self.current_screen.draw(self.screen)
             
+            self.delay_queue.update()
             pg.display.update()
             self.clock.tick(settings.fps)
         

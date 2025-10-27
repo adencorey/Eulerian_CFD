@@ -3,9 +3,9 @@ import pygame as pg
 import logging
 from itertools import chain
 
-from cfd.interface.config import Events, Screens, config
+from cfd.interface.config import Events, Screens, Delay, config
 from cfd.interface.widgets import NULLWIDGET, Widget, WidgetInfo, RectButton, ProjectButton
-from cfd.utilities.files_manager import scan_projects
+from cfd.utilities.files_manager import scan_projects, delete_project
 from cfd.utilities.screen_helper import get_grid, TITLE_POS
 
 logger = logging.getLogger(__name__)
@@ -66,8 +66,6 @@ class LibraryScreen:
         
         if not self.hovering.name:
             self.highlighting = NULLWIDGET
-            for button in self.alter_buttons: 
-                button.disabled = True
             return
         event = None
         extra_data = {}
@@ -94,6 +92,16 @@ class LibraryScreen:
                         event = Events.SCREEN_SWITCH
                         extra_data["screen_id"] = Screens.EDIT_PROJ.value
                         extra_data["highlighting"] = self.highlighting
+                
+                case self.del_btn.id:
+                    if not self.del_btn.disabled:
+                        if not self.del_btn.confirm:
+                            event = Events.DELAY_FUNCTION
+                            extra_data["function"] = self.del_btn.toggle_confirm()
+                        else:
+                            if self.highlighting.id:
+                                delete_project(self.highlighting.text)
+                                self.__init__()
                     
                 case _:
                     return
@@ -114,6 +122,9 @@ class LibraryScreen:
     def update(self) -> None:
         for widget in chain(self.buttons, self.infos):
             widget.update(self.hovering.id, self.highlighting.id)
+        if not self.highlighting.id:
+            for button in self.alter_buttons: 
+                button.disabled = True
     
     def draw(self, screen: pg.Surface) -> None:
         

@@ -1,19 +1,40 @@
 import pygame as pg
 import numpy as np
 
+from typing import Generator
+
 from cfd.utilities.assets import load_image, recolour_image
-from cfd.interface.config import registry, config
+from cfd.interface.config import registry, config, Delay
 from .widget import Widget
         
 
 class RectButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple=None, text:str=None, font:pg.font.Font=None, disabled=False) -> None:
+    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple=None, text:str=None, font:pg.font.Font=None, disabled=False, confirm=False) -> None:
         super().__init__(name=name, rect=rect, anchor=anchor, colours=colours, text=text, font=font)
         self.disabled = disabled
+        self.confirm = confirm
+    
+    def toggle_confirm(self) -> Generator:
+        
+        self.confirm = True
+        self.disabled = True
+        yield from Delay(0.3)
+        self.disabled = False
+        yield from Delay(0.7)
+        self.confirm = False
+    
+    #   ==========[ UPDATE ]==========    
+    def _update_text(self):
+        super()._update_text()
+        if self.confirm:
+            self.text_surf = self.font.render("Confirm", True, self.main_clr)
+            self.text_rect = self.text_surf.get_rect(center=self.rect.center)
 
     def _update_colours(self, hvr_id, hl_id):
         super()._update_colours(hvr_id, hl_id)
+        if self.confirm:
+            self.main_clr = (255, 0, 0)
         if self.disabled:
             self.main_clr, self.bg_clr = config.hvr_clr, config.bg_clr
         

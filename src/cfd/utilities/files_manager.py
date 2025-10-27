@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import shutil
 
 from cfd.utilities.time import get_now
 
@@ -97,7 +98,7 @@ def rename_project(old_name:str, new_name:str, counter=1) -> True | False:
     """renames project directory"""
     
     if not new_name: new_name = "New Project"
-    log.debug(f"Renaming project name from {old_name} to {new_name}...")
+    log.info(f"Renaming project name from {old_name} to {new_name}...")
     if old_name == new_name: return True
     projects = scan_projects()
     for project in projects:
@@ -124,6 +125,7 @@ def rename_project(old_name:str, new_name:str, counter=1) -> True | False:
 def edit_project(name:str, options:dict=None, metadata:dict=None) -> True | False:
     """edits options.json or metadata.json of project"""
     
+    log.info(f"Editing project files with name {name}")
     valid = True
     filepath = os.path.join(SAVES_PATH, name)
     if options:
@@ -133,6 +135,23 @@ def edit_project(name:str, options:dict=None, metadata:dict=None) -> True | Fals
         if not edit_json(os.path.join(filepath, "metadata.json"), metadata):
             valid = False
     return valid
+
+def delete_project(name:str) -> True | False:
+    """deletes project directory"""
+    
+    log.info(f"Deleting project with name {name}")
+    filepath = os.path.join(SAVES_PATH, name)
+    try:
+        shutil.rmtree(filepath)
+        log.info(f"Successfully deleted project directory with name {name}")
+        return True
+    except FileNotFoundError as e:
+        log.warning(f"Project name {name} not found ({e})")
+    except PermissionError as e:
+        log.warning(f"Directory cannot be removed, please enable permission to delete files ({e})")
+    except Exception as e:
+        log.error(f"An error has occured when deleting project {name} ({e})")
+    return False
 
         
 def scan_projects() -> list[dict[str, str|dict[str, str|int]]]:

@@ -40,7 +40,7 @@ class Slidebar(Widget):
         self.max_val_rect = self.max_val_surf.get_rect(left=self.rect.right + 2 * self.radius, centery=self.rect.centery)
         self.val_rect = self.val_surf.get_rect(top=self.rect.bottom + self.radius, centerx=self.x_vals[self.index])
         
-    def update(self, hvr_id, hl_id):
+    def update(self, hvr_id, hl_id) -> None:
         
         def is_left_of_first():
             return self.x_pos < self.x_vals[0]
@@ -49,8 +49,8 @@ class Slidebar(Widget):
         
         for i in range(len(self.x_vals) - 1):
             if is_left_of_first() or is_between_vals(i):
+                self.index = i if abs(self.x_pos - self.x_vals[i]) < abs(self.x_pos - self.x_vals[i + 1]) else i + 1
                 break
-        self.index = i if abs(self.x_pos - self.x_vals[i]) < abs(self.x_pos - self.x_vals[i + 1]) else i + 1
         self.value = self.values[self.index]
         self._update_colours(hvr_id, hl_id)
         self._update_text()
