@@ -10,10 +10,10 @@ from .widget import Widget
 
 class RectButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple=None, text:str=None, font:pg.font.Font=None, disabled=False, confirm=False) -> None:
+    def __init__(self, name:str, rect:pg.Rect, anchor:str=None, colours:tuple=None, text:str=None, font:pg.font.Font=None, disabled=False) -> None:
         super().__init__(name=name, rect=rect, anchor=anchor, colours=colours, text=text, font=font)
         self.disabled = disabled
-        self.confirm = confirm
+        self.confirm = False
     
     def toggle_confirm(self) -> Generator:
         
@@ -108,6 +108,13 @@ class ProjectButton(Widget):
         self.metadata = metadata
         self.sub_font = config.font["sub"]
         self.offset = int(0.1 * self.rect.height)
+        self.double_click = False
+        
+    def toggle_double_click(self) -> Generator:
+        
+        self.double_click = True
+        yield from Delay(0.3)
+        self.double_click = False
         
     
     def _update_text(self):

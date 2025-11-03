@@ -6,7 +6,7 @@ from typing import Generator
 
 from cfd.settings.manager import settings
 from cfd.interface.config import Events, Screens, Delay
-from cfd.interface.screens import ToolBar, LibraryScreen, SettingsScreen, CreateProjectScreen, EditProjectScreen
+from cfd.interface.screens import ToolBar, LibraryScreen, SettingsScreen, CreateProjectScreen, EditProjectScreen, SimulationScreen
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,8 @@ class App:
             self.current_screen = EditProjectScreen(highlighting)
         elif screen_id == Screens.SETTINGS.value:
             self.current_screen = SettingsScreen()
+        elif screen_id == Screens.SIMULATION.value:
+            self.current_screen = SimulationScreen()
                 
     #   mainloop
     def run(self):
@@ -59,6 +61,7 @@ class App:
         keyboard_inp = ""
         max_char = 0
         while self.running:
+            dt = self.clock.tick(settings.fps) / 1000
             typing = False
             for event in pg.event.get():
                 self.tool_bar.handle_events(event)
@@ -93,8 +96,7 @@ class App:
                 if event.type == Events.DELAY_FUNCTION:
                     self.delay_queue.append(event.function)
                     
-            
-            self.current_screen.update()
+            self.current_screen.update(dt)
             self.tool_bar.update(self.clock.get_fps())
 
             self.screen.fill(settings.theme.dark_bg)
@@ -103,7 +105,6 @@ class App:
             
             self.delay_queue.update()
             pg.display.update()
-            self.clock.tick(settings.fps)
         
         logger.info("Shutting down program...")
         pg.quit()

@@ -4,7 +4,7 @@ import logging
 from itertools import chain
 
 from cfd.interface.config import Events, Screens, config
-from cfd.interface.widgets import Widget, NULLWIDGET, WidgetInfo, RectButton, TextBox, Slidebar, ProjectButton
+from cfd.interface.widgets import Widget, NULLWIDGET, Info, RectButton, TextBox, Slidebar, ProjectButton
 from cfd.utilities.files_manager import rename_project, edit_project
 from cfd.utilities.screen_helper import get_grid, TITLE_POS
 
@@ -23,11 +23,11 @@ class EditProjectScreen:
         self.title_surf = config.font["title"].render("Edit Project", True, config.main_clr)
         
         #   ==========[ PROJECT NAME ]==========
-        self.proj_name_info = WidgetInfo(name="proj_name_info", title="Project Name", pos=get_grid(10, 7), description="Name of the new project")
+        self.proj_name_info = Info(name="proj_name_info", title="Project Name", pos=get_grid(10, 7), description="Name of the new project")
         self.proj_textbox = TextBox(name="proj_nme_tbx", rect=pg.Rect(get_grid(15, 9), self.tb_size), anchor="n", placeholder="New Project", max=30)
         
         #   ==========[ GRAVITY STRENGTH SLIDEBAR ]==========
-        self.grav_info = WidgetInfo(name="grav_info", title="Gravity Strength", pos=get_grid(10, 15), description="Gravity strength of project environment, multiplier of acceleration due to gravity on Earth (9.81 ms^-2).")
+        self.grav_info = Info(name="grav_info", title="Gravity Strength", pos=get_grid(10, 15), description="Gravity strength of project environment, multiplier of acceleration due to gravity on Earth (9.81 ms^-2).")
         self.grav_sb = Slidebar(name="grav_sb", rect=pg.Rect(get_grid(15, 17), self.sb_size), min_val=-1, max_val=5, step=0.1, default=1)
         
         #   ==========[ BACK BUTTON ]==========
@@ -40,7 +40,7 @@ class EditProjectScreen:
         self.buttons: list[RectButton] = [self.canc_btn, self.save_btn]
         self.textboxes: list[TextBox] = [self.proj_textbox]
         self.slidebars: list[Slidebar] = [self.grav_sb]
-        self.infos: list[WidgetInfo] = [self.proj_name_info, self.grav_info]
+        self.infos: list[Info] = [self.proj_name_info, self.grav_info]
         
         self.hovering: Widget = NULLWIDGET
         self.selected: TextBox = NULLWIDGET
@@ -137,7 +137,7 @@ class EditProjectScreen:
     
     
     #   ==========[ UPDATE ]==========    
-    def update(self) -> None:
+    def update(self, dt) -> None:
         for widget in chain(self.buttons, self.textboxes, self.slidebars, self.infos):
             widget.update(self.hovering.id, -1)
          

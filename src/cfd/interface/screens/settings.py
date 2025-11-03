@@ -5,7 +5,7 @@ from itertools import chain
 
 from cfd.settings.manager import settings
 from cfd.interface.config import config
-from cfd.interface.widgets import Widget, WidgetInfo, NULLWIDGET, Dropdown
+from cfd.interface.widgets import Widget, Info, NULLWIDGET, Dropdown
 from cfd.utilities.screen_helper import get_grid, TITLE_POS
 
 logger = logging.getLogger(__name__)
@@ -22,19 +22,19 @@ class SettingsScreen:
         self.title_pos = TITLE_POS
         
         #   ==========[ THEME SETTING ]==========
-        self.theme_info = WidgetInfo(name="theme_info", title="Theme", pos=get_grid(3, 7), description="Colour scheme of the program.")
+        self.theme_info = Info(name="theme_info", title="Theme", pos=get_grid(3, 7), description="Colour scheme of the program.")
         self.theme_drp = Dropdown(name="theme_drp", rect=pg.Rect(get_grid(3, 8), self.drp_size), options=["light", "dark"], setting=settings.theme_name)
 
         #   ==========[ FPS SETTING ]==========
-        self.fps_info = WidgetInfo(name="fps_info", title="Frame Rate", pos=get_grid(3, 12), description="Frame per second of the program.")
+        self.fps_info = Info(name="fps_info", title="Frame Rate", pos=get_grid(3, 12), description="Frame per second of the program.")
         self.fps_drp = Dropdown(name="fps_drp", rect=pg.Rect(get_grid(3, 13), self.drp_size), options=["30", "45", "60", "120"], setting=settings.fps)
         
         #   ==========[ SHOW FPS SETTING ]==========
-        self.shw_fps_info = WidgetInfo(name="shw_fps_info", title="Show FPS", pos=get_grid(3, 15), description="Display frame rate on screen.")
+        self.shw_fps_info = Info(name="shw_fps_info", title="Show FPS", pos=get_grid(3, 15), description="Display frame rate on screen.")
         self.shw_fps_drp = Dropdown(name="shw_fps_drp", rect=pg.Rect(get_grid(3, 16), self.drp_size), options=["true", "false"], setting=settings.show_fps)
         
         self.dropdowns:list[Dropdown] = [self.theme_drp, self.fps_drp, self.shw_fps_drp]
-        self.infos: list[WidgetInfo] = [self.theme_info, self.fps_info, self.shw_fps_info]
+        self.infos: list[Info] = [self.theme_info, self.fps_info, self.shw_fps_info]
         self.hovering: Widget = NULLWIDGET
         
     
@@ -111,7 +111,7 @@ class SettingsScreen:
         
         self.title_surf = config.font["title"].render("Settings", True, config.main_clr)
     
-    def update(self) -> None:
+    def update(self, dt) -> None:
         
         for widget in chain(self.dropdowns, self.infos):
             widget.update(self.hovering.id, -1)

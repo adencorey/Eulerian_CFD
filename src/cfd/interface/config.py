@@ -14,6 +14,7 @@ class Screens(Enum):
     CRT_PROJ = 1
     EDIT_PROJ = 2
     SETTINGS = 3
+    SIMULATION = 4
 
     
 #   ==========[ OBJECT REGISTRY ]==========

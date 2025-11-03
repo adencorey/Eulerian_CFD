@@ -4,7 +4,7 @@ import logging
 from itertools import chain
 
 from cfd.interface.config import Events, Screens, Delay, config
-from cfd.interface.widgets import NULLWIDGET, Widget, WidgetInfo, RectButton, ProjectButton
+from cfd.interface.widgets import NULLWIDGET, Widget, Info, RectButton, ProjectButton
 from cfd.utilities.files_manager import scan_projects, delete_project
 from cfd.utilities.screen_helper import get_grid, TITLE_POS
 
@@ -18,7 +18,6 @@ class LibraryScreen:
         self.title_surf = config.font["title"].render("Library", True, config.main_clr)        
         self.btn_dim = (int(0.2 * config.width), int(0.05 * config.height))
         self.proj_dim = (int(0.5 * config.width), int(0.1 * config.height))
-        
         
         #   ==========[ BUTTONS ]==========
         self.crt_btn = RectButton(name="crt_proj_scn_btn", rect=pg.Rect(get_grid(3, 10), self.btn_dim), text="Create Project")
@@ -38,11 +37,11 @@ class LibraryScreen:
         
         #   ==========[ PROJECT COUNT LABEL ]==========
         num_proj = len(self.projects)
-        self.proj_count_info = WidgetInfo(name="proj_count_info", title=f"Project count ({num_proj}/5)", pos=get_grid(3, 8), description="Number of projects created, maximum 5 entries.")
+        self.proj_count_info = Info(name="proj_count_info", title=f"Project count ({num_proj}/5)", pos=get_grid(3, 8), description="Number of projects created, maximum 5 entries.")
         if num_proj == 5: self.crt_btn.disabled = True
         
         self.buttons: list[RectButton | ProjectButton] = [self.crt_btn] + self.alter_buttons + self.projects
-        self.infos: list[WidgetInfo] = [self.proj_count_info]
+        self.infos: list[Info] = [self.proj_count_info]
         self.hovering: Widget = NULLWIDGET
         self.highlighting: Widget = NULLWIDGET
         
@@ -73,9 +72,18 @@ class LibraryScreen:
         
         for project in self.projects:
             if self.hovering.id == project.id:
-                self.highlighting = project
-                for button in self.alter_buttons:
-                    button.disabled = False
+                
+                if not project.double_click:
+                    self.highlighting = project
+                    event = Events.DELAY_FUNCTION
+                    extra_data["function"] = project.toggle_double_click()
+                    for button in self.alter_buttons:
+                        button.disabled = False
+                                    
+                else:
+                    event = Events.SCREEN_SWITCH
+                    extra_data["screen_id"] = Screens.SIMULATION.value
+                    
                 clicked = True
                 break
         
@@ -119,7 +127,7 @@ class LibraryScreen:
             
 
     #   ==========[ UPDATE ]==========
-    def update(self) -> None:
+    def update(self, dt) -> None:
         for widget in chain(self.buttons, self.infos):
             widget.update(self.hovering.id, self.highlighting.id)
         if not self.highlighting.id:

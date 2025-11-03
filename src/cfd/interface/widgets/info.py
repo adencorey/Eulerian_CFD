@@ -4,7 +4,7 @@ import numpy as np
 from cfd.interface.config import config
 from cfd.interface.widgets import Widget
 
-class WidgetInfo(Widget):
+class Info(Widget):
     
     def __init__(self, name:str, title:str, pos:tuple, description:str, line_max:int=45) -> None:
         super().__init__(name=name, rect=pg.Rect(pos, (0, 0)), font=config.font["head"])
@@ -53,11 +53,10 @@ class WidgetInfo(Widget):
         num_lines = len(self.description)
         
         #   get dimension of description box
-        if num_lines == 1:
-            w, h = self.padding + self.desc_font.size(self.description[0])
-        else:
-            w, h = self.padding + self.desc_font.size(self.line_max * "'/")
-        h *= num_lines
+        placeholder = self.description[0] if num_lines == 1 else self.line_max * "'/"
+        w, h = self.desc_font.size(placeholder)
+        h = h * num_lines
+        w, h = self.padding + np.array((w, h))
         
         #   determine anchor
         if px + w > config.width: px -= w
