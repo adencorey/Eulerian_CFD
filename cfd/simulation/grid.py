@@ -30,8 +30,8 @@ class Grid:
         self.w = np.ones(COLLOCATED_GRID, dtype=np.uint8)
         self.w[1:-1, 1] = 0
         self.w[1:-1, -2] = 0
-        #self.w[1, 2:-2] = 0
-        #self.w[-2, 2:-2] = 0
+        self.w[1, 2:-2] = 0
+        self.w[-2, 2:-2] = 0
         
         #   velocity field
         #self.u = np.random.uniform(-1, 1, (self.num_cells + 1, self.num_cells)).astype(np.float64)

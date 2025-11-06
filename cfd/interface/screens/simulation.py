@@ -143,13 +143,14 @@ class SimulationScreen:
                 rx, ry = mouse_rel
                 self.grid.u[i_start:i_end, j_start:j_end] += rx / self.dt * weight
                 self.grid.v[i_start:i_end, j_start:j_end] -= ry / self.dt * weight
+                self.grid.s[i_start:i_end, j_start:j_end] += weight
+                np.clip(self.grid.s, 0, 1, out=self.grid.s)
             
-            if mid:
+            if mid or (left and right):
                 self.grid.w[i_start:i_end, j_start:j_end] = 1 - np.clip((weight * 2 * radius).astype(int), 0, 1)
                 
             if right:
-                self.grid.s[i_start:i_end, j_start:j_end] += weight
-                np.clip(self.grid.s, 0, 1, out=self.grid.s)
+                pass
         
     def handle_events(self, event: pg.event.Event) -> None:
         
@@ -208,7 +209,7 @@ class SimulationScreen:
             
         if self.wind_tunnel:
             self.grid.u[1:2, 1:-1] = 500 / self.dt / self.grid.cell_px / self.grid.scale
-            self.grid.s[1, self.grid.num_cells//2-2:self.grid.num_cells//2+3] = 1
+            self.grid.s[1, self.grid.num_cells//2-2:self.grid.num_cells//2+1] = 1
             
         self.grid.set_boundary_values()
         self.grid.calculate_divergence()

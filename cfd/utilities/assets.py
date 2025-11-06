@@ -2,10 +2,13 @@ import pygame as pg
 
 import os
 import logging
+from pathlib import Path
+from importlib import resources
 
 logger = logging.getLogger(__name__)
 
-ASSETS_PATH = os.path.relpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "assets"))
+ROOT = Path(resources.files("cfd")).parent
+ASSETS_PATH = os.path.join(ROOT, "assets")
 
 def load_image(filename: str) -> pg.Surface | None:
     
