@@ -23,7 +23,7 @@ def load_image(filename: str) -> pg.Surface | None:
     
 def recolour_image(surface: pg.Surface, old_colour, new_colour) -> pg.Surface:
     
-    pixels = pg.PixelArray(surface)         #   convert image pixels into numpy array
+    pixels = pg.PixelArray(surface)         #   convert image pixels into an array
     pixels.replace(old_colour, new_colour)  #   replace colours
     del pixels                              #   unlock array
     return surface

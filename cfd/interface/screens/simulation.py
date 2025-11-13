@@ -5,10 +5,11 @@ import logging
 from itertools import chain
 
 from cfd.settings.manager import settings
-from cfd.interface.config import Events, Screens, config
+from cfd.interface.config import config
 from cfd.interface.widgets import Widget, NULLWIDGET, Info, RectButton, Dropdown, Slidebar
 from cfd.utilities.screen_helper import TITLE_POS, get_grid
 from cfd.simulation.grid import Grid
+from cfd.simulation.algorithms import get_velocity_at_pos, get_density_at_pos
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +49,8 @@ class SimulationScreen:
         self.advect_field_btn = RectButton(name="advect_field_btn", rect=pg.Rect(get_grid(8, 22), self.btn_dim), text="On")
         
         self.brush_size_info = Info(name="brush_size_info", title="Brush Size", pos=get_grid(3, 24), description="Scalar for brush radius")
-        self.brush_size_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(8, 26), self.sb_dim), min_val=0.5, max_val=5, step=0.1, default=1)
+        self.brush_size_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(8, 26), self.sb_dim), min_val=0.5, max_val=5, step=0.1, default=2)
         
-
         self.infos: list[Info] = [self.total_div, self.total_s, self.cell_type, self.cell_idx, self.cell_vel, self.cell_div, self.cell_s, self.cell_p, self.dsp_field_info, self.shw_vel_info, self.proj_field_info, self.advect_field_info, self.brush_size_info]
         self.dropdowns: list[Dropdown] = [self.dsp_field_drp]
         self.btns: list[RectButton] = [self.shw_vel_btn, self.proj_field_btn, self.advect_field_btn]
@@ -58,7 +58,10 @@ class SimulationScreen:
         self.hovering: Widget = NULLWIDGET
         self.hover_idx = None
         
-        self.wind_tunnel = False
+        self.base_img = np.zeros([self.grid.num_cells, self.grid.num_cells, 3], dtype=np.uint8)
+        self.vel_img = np.zeros((self.grid.grid_size[1], self.grid.grid_size[0], 3), dtype=np.uint8)
+        self.img_surf = pg.surfarray.make_surface(self.vel_img)
+        self.wind_tunnel = True
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_hover(self, mouse_pos: tuple) -> None:        
@@ -140,17 +143,17 @@ class SimulationScreen:
             weight = np.clip(weight, 0, 1)
             
             if left:
-                rx, ry = mouse_rel
-                self.grid.u[i_start:i_end, j_start:j_end] += rx / self.dt * weight
-                self.grid.v[i_start:i_end, j_start:j_end] -= ry / self.dt * weight
-                self.grid.s[i_start:i_end, j_start:j_end] += weight
-                np.clip(self.grid.s, 0, 1, out=self.grid.s)
+                rx, ry = mouse_rel                                                                  #   velocity in pixel/tick
+                px_to_m_scale = self.grid.cell_size / self.grid.cell_px                             #   convertion scalar from pixel to meter, unit: meter/pixel
+                self.grid.u[i_start:i_end, j_start:j_end] += rx * px_to_m_scale / self.dt * weight   #   convert to ms-1: pixel * (meter/pixel) / second = meter/second
+                self.grid.v[i_start:i_end, j_start:j_end] -= ry * px_to_m_scale / self.dt * weight
             
             if mid or (left and right):
                 self.grid.w[i_start:i_end, j_start:j_end] = 1 - np.clip((weight * 2 * radius).astype(int), 0, 1)
                 
             if right:
-                pass
+                self.grid.s[i_start:i_end, j_start:j_end] += weight
+                np.clip(self.grid.s, 0, 1, out=self.grid.s)
         
     def handle_events(self, event: pg.event.Event) -> None:
         
@@ -169,10 +172,7 @@ class SimulationScreen:
         
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_SPACE:
-                self.wind_tunnel = True
-        
-        if event.type == pg.KEYUP:
-            self.wind_tunnel = False
+                self.wind_tunnel != self.wind_tunnel
     
     
     #   ==========[ UPDATE ]==========
@@ -202,47 +202,75 @@ class SimulationScreen:
         
     def update(self, dt) -> None:
         
+        self.dt = dt
+        self.grid.dt = dt
         for widget in chain(self.infos, self.btns, self.dropdowns, self.slidebars):
             widget.update(self.hovering.id, -1)
-    
-    def update_grid(self, screen:pg.Surface) -> None:
-            
-        if self.wind_tunnel:
-            self.grid.u[1:2, 1:-1] = 500 / self.dt / self.grid.cell_px / self.grid.scale
-            self.grid.s[1, self.grid.num_cells//2-2:self.grid.num_cells//2+1] = 1
-            
-        self.grid.set_boundary_values()
-        self.grid.calculate_divergence()
-        self.grid.calculate_pressure(100, 1.5)
+        self._update_grid()
+        
+    def _update_screen(self) -> None:
+        
         self._update_text()
-        self.draw_grid(screen)
+        match self.dsp_field:
+            case "Smoke": self.grid.get_smoke_field_img(self.base_img)
+            case "Divergence": self.grid.get_divergence_field_img(self.base_img)
+            case "Pressure": self.grid.get_pressure_field_img(self.base_img)
+        self.vel_img[:, :, :] = 0
+        if self.shw_vel_btn.text == "On":
+            self.grid.get_velocity_field_img(self.vel_img)
+
+
+    def _update_grid(self) -> None:
+            
+        advect = self.advect_field_btn.text == "On"
+        project = self.proj_field_btn.text == "On"
         
-        self.grid.project_velocities()
+        #   1. add external sources
+        if self.wind_tunnel:
+            self.grid.u[1, 1:-1] = 7
+            self.grid.s[0, self.grid.num_cells//2-int(self.grid.scale):self.grid.num_cells//2+int(self.grid.scale)+1] = 1
+            
+        #   2. clears out divergence to enforce incompressibility
+        if project:
+            self.grid.calculate_divergence()
+            self.grid.calculate_pressure(100, 1.6)
+            self.grid.project_velocities()
+        
+        #   3. manage boundary values
         self.grid.set_boundary_values()
-        self.grid.advect_velocities()
         
+        #   4. update screen  
         self.grid.calculate_divergence()
-        self.grid.calculate_pressure(100, 1)
-        self.grid.project_velocities()
-        self.grid.advect_smoke()
+        self._update_screen()   
+        
+        #   5. move velocities and smoke
+        np.clip(self.grid.s, 0, 1, out=self.grid.s)
+        if advect:
+            self.grid.advect_smoke()
+            self.grid.advect_velocities()
+            
+        #   6. manage boundary values again
+        self.grid.set_boundary_values()   
         
     
     #   ==========[ DRAW ]==========
     def draw_grid(self, screen:pg.Surface) -> None:
         
-        match self.dsp_field:
-            case "Smoke": img = self.grid.get_smoke_field_img()
-            case "Divergence": img = self.grid.get_divergence_field_img()
-            case "Pressure": img = self.grid.get_pressure_field_img()
-        screen.blit(img, self.grid.rect)
-        if self.shw_vel_btn.text == "On": screen.blit(self.grid.get_velocity_field_img(), self.grid.rect)
-        screen.blit(self.grid.get_walls_field_img(), self.grid.rect)
+        self.grid.get_walls_field_img(self.base_img)
+        base_surf = pg.surfarray.make_surface(self.base_img)
+        self.img_surf.blit(pg.transform.scale(base_surf, self.grid.grid_size), (0, 0))
+        screen.blit(self.img_surf, self.grid.rect)
+        
+        if np.any(self.vel_img != 0):
+            vel_surf = pg.surfarray.make_surface(self.vel_img)
+            vel_surf.set_colorkey((0, 0, 0))
+            screen.blit(vel_surf, self.grid.rect)
         
         
     def draw(self, screen:pg.Surface) -> None:
         
         screen.blit(self.title_surf, TITLE_POS)     #   draw title
-        self.update_grid(screen)
+        self.draw_grid(screen)
         
         for widget in chain(self.infos, self.btns, self.dropdowns, self.slidebars):
             if isinstance(widget, Dropdown):
