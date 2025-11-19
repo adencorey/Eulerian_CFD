@@ -60,12 +60,11 @@ class App:
         logger.info("Running mainloop...")
         keyboard_inp = ""
         max_char = 0
-        tps = 120
-        count = 0
-        interval = tps / settings.fps
+        dt = 1 / settings.tps
         while self.running:
-            self.clock.tick(tps)
-            dt = 1 / tps
+            self.clock.tick(settings.tps)
+            tps = self.clock.get_fps()
+            interval = max(tps / settings.fps, 1)
             
             typing = False
             for event in pg.event.get():
@@ -104,14 +103,12 @@ class App:
             self.current_screen.update(dt)
             self.delay_queue.update()
             
-            if count % interval == 0:
-                self.tool_bar.update(self.clock.get_fps() / interval)
+            if pg.time.get_ticks() % int(interval) == 0:
+                self.tool_bar.update(tps / interval, tps)
                 self.screen.fill(settings.theme.dark_bg)
                 self.tool_bar.draw(self.screen)
                 self.current_screen.draw(self.screen)
                 pg.display.flip()
-            
-            count += 1
         
         logger.info("Shutting down program...")
         pg.quit()

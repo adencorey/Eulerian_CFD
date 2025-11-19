@@ -2,16 +2,13 @@ import numpy as np
 from numba import njit, prange
 
 #   ==========[ BOUNDARY CONDITIONS ]==========
-@njit("void(float64[:, :], float64[:, :], float64[:, :])", cache=False)
+@njit("void(float64[:, :], float64[:, :], float64[:, :])", cache=True)
 def ghost_cells_boundary_check(u:np.ndarray[np.float64], v:np.ndarray[np.float64], s:np.ndarray[np.float64]) -> None:
-    """copy neighbouring cells at boundary so fluids flow out of screen"""
+    u[0, :] = u[-1, :] = u[:, 0] = u[:, -1] = 0
+    v[:, 0] = v[:, -1] = v[:, 0] = v[:, -1] = 0
+    s[0, :] = s[-1, :] = s[:, 0] = s[:, -1] = 0
 
-    u[0, :] = u[1, :]
-    u[-1, :] = u[-2, :]
-    v[:, 0] = v[:, 1]
-    v[:, -1] = v[:, -2]
-
-@njit("void(uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=False, parallel=True)
+@njit("void(uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True)
 def free_slip_boundary_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], s:np.ndarray[np.float64]) -> None:
     """set velocity to 0 at wall cells"""
     
@@ -31,7 +28,7 @@ def free_slip_boundary_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray
                 
             
 #   ==========[ PROJECTION ]==========
-@njit("void(uint16, float32, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=False, parallel=True, fastmath=True)
+@njit("void(uint16, float32, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True, fastmath=True)
 def get_divergence_field(num_cells:int, cell_size:float, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], div:np.ndarray[np.float64]) -> None:
     """get total inflow/outflow of all cells divided by cell size"""
 
@@ -39,8 +36,8 @@ def get_divergence_field(num_cells:int, cell_size:float, w:np.ndarray[np.uint8],
         for j in prange(1, num_cells - 1):
             div[i, j] = (u[i+1, j] - u[i, j] + v[i, j] - v[i, j+1]) / cell_size if w[i, j] == 1 else 0
 
-@njit("float64[:, :](float32, uint16, float32, uint8[:, :], float64[:, :], uint16, float32)", cache=False, fastmath=True)
-def poisson_pressure_solve(dt:float, num_cells:int, cell_size_sq:float, w:np.ndarray[np.uint8], div:np.ndarray[np.float64], iter:int, sor_weight:float) -> np.ndarray[np.float64, np.float64]:
+@njit("float64[:, :](float32, uint16, float32, float32, uint8[:, :], float64[:, :], uint16, float32)", cache=True, fastmath=True)
+def poisson_pressure_solve(dt:float, num_cells:int, cell_size_sq:float, density:float, w:np.ndarray[np.uint8], div:np.ndarray[np.float64], iter:int, sor_weight:float) -> np.ndarray[np.float64, np.float64]:
     """solves pressure field iteratively (Gauss-Seidel) using Poisson's pressure equation"""
     
     p = np.zeros((num_cells, num_cells), dtype=np.float64)
@@ -56,20 +53,20 @@ def poisson_pressure_solve(dt:float, num_cells:int, cell_size_sq:float, w:np.nda
                     p[i, j] = 0
                     continue
                 
-                #   new pressure = (sum of adj pressures - velocity flux / dt) / num of adj cells
-                new_p = (((p[i-1, j] * w_l) + (p[i+1, j] * w_r) + (p[i, j-1] * w_t) + (p[i, j+1] * w_b)) - cell_size_sq * div[i, j] / dt) / num_fluid_cells
-                p[i, j] += (new_p - p[i, j]) * sor_weight       #   successive over-relaxation
+                #   new pressure = (sum of adj pressures - (density * cell size ** 2 * velocity flux / dt)) / num of adj cells
+                new_p = (((p[i-1, j] * w_l) + (p[i+1, j] * w_r) + (p[i, j-1] * w_t) + (p[i, j+1] * w_b)) - cell_size_sq * density * div[i, j] / dt) / num_fluid_cells
+                p[i, j] += (new_p - p[i, j]) * sor_weight       #   successive over-relaxation    
     return p
                 
 
-@njit("void(float32, uint16, float32, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=False, parallel=True)
-def pressure_projection(dt:float, num_cells:int, cell_size:float, w:np.ndarray[np.uint8], p:np.ndarray[np.float64], u:np.ndarray[np.float64], v:np.ndarray[np.float64]) -> None:
+@njit("void(float32, uint16, float32, float32, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True)
+def pressure_projection(dt:float, num_cells:int, cell_size:float, density:float, w:np.ndarray[np.uint8], p:np.ndarray[np.float64], u:np.ndarray[np.float64], v:np.ndarray[np.float64]) -> None:
     """
     clears out divergence by calculating pressure field and finding pressure gradient, since curl of the pressure gradient field = 0 we also found curl-free field\n
     according to Helmholtz's decomposition theorem, any field = divergence-free part + curl-free part\n
     rearrange to get: divergence-free = field - curl-free
     """
-    k = dt / cell_size
+    k = dt / (cell_size * density)
     #   update horizontal velocity
     for i in prange(1, num_cells):
         for j in prange(1, num_cells - 1):
@@ -86,7 +83,7 @@ def pressure_projection(dt:float, num_cells:int, cell_size:float, w:np.ndarray[n
             wall_v = w[i, j] == 0 or w[i, j-1] == 0
             if not wall_v:
                 dpdy = p[i, j] - p[i, j-1]   #   find pressure gradient
-                v[i, j] += k * dpdy          #  negate for screen coords
+                v[i, j] -= k * -dpdy         #  negate for screen coords
             else:
                 v[i, j] = 0
 
@@ -94,10 +91,10 @@ def pressure_projection(dt:float, num_cells:int, cell_size:float, w:np.ndarray[n
 29/10: pressure projection exploded
 fixed: wrong code (k = cell_size / dt and top - center)
 blew up again: wrong code (add press grad in y bc of screen coord)
-"""          
+"""
 
 #   ==========[ ADVECTION ]==========
-@njit("float64(float64[:, :], int16[:], float64[:])", cache=False, inline="always")
+@njit("float64(float64[:, :], int16[:], float64[:])", cache=True, inline="always")
 def bilerp(field:np.ndarray[np.float64], floor:tuple[np.int16], fract:tuple[np.float64]) -> np.float64:
     """
     bilinear interpolate between 4 points\n
@@ -111,7 +108,7 @@ def bilerp(field:np.ndarray[np.float64], floor:tuple[np.int16], fract:tuple[np.f
     return (1 - fj) * t + fj * b                            #   lerp top and bottom
 
 
-@njit("Tuple((int16, float64))(uint16, uint16, float64)", cache=False, inline="always")
+@njit("Tuple((int16, float64))(uint16, uint16, float64)", cache=True, inline="always")
 def clamp_index(num_cells:int, floor:np.int16, fract:np.float64) -> tuple[np.int16, np.float64]:
     """clamp index and proportion to staggered grid format"""
     if fract < 0.5:
@@ -119,21 +116,21 @@ def clamp_index(num_cells:int, floor:np.int16, fract:np.float64) -> tuple[np.int
         fract += 0.5
     else:
         fract -= 0.5
-    if floor < 0: floor = 0
+    if floor < 0: floor = 1
     elif floor >= num_cells: floor = num_cells - 1
     return floor, fract
 
-@njit("Tuple((int16[:], float64[:]))(float64[:])", cache=False, inline="always")
+@njit("Tuple((int16[:], float64[:]))(float64[:])", cache=True, inline="always")
 def split_index(idx:np.ndarray[np.float64]) -> tuple[np.ndarray[np.int16], np.ndarray[np.float64]]:
     """splits index into floor part and fractional part"""
     
     i, j = idx
     floor = np.array((int(i), int(j)), dtype=np.int16)
-    fract = (idx - floor).astype(np.float64)
+    fract = idx - floor
     return floor, fract
     
 
-@njit("float64[:](uint16, float64[:, :], float64[:, :], float64[:])", cache=False, inline="always")
+@njit("float64[:](uint16, float64[:, :], float64[:, :], float64[:])", cache=True, inline="always")
 def get_velocity_at_pos(num_cells:int, u:np.ndarray[np.float64], v:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.ndarray[np.float64, np.float64]:
     """get velocity at given position where vertical velocity is negated for screen coordinates"""
     
@@ -154,7 +151,7 @@ def get_velocity_at_pos(num_cells:int, u:np.ndarray[np.float64], v:np.ndarray[np
     y_vel = bilerp(v, (vi, vj), (fvi, fvj))
     return np.array((x_vel, -y_vel))        #   negate y for screen coord
 
-@njit("float64(uint16, float64[:, :], float64[:])", cache=False, inline="always")
+@njit("float64(uint16, float64[:, :], float64[:])", cache=True, inline="always")
 def get_u_at_pos(num_cells:int, u:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.float64:
     """get horizontal velocity at given position"""
     
@@ -162,7 +159,7 @@ def get_u_at_pos(num_cells:int, u:np.ndarray[np.float64], idx:np.ndarray[np.floa
     j, fj = clamp_index(num_cells + 1, j, fj)
     return bilerp(u, (i, j), (fi, fj))
 
-@njit("float64(uint16, float64[:, :], float64[:])", cache=False, inline="always")
+@njit("float64(uint16, float64[:, :], float64[:])", cache=True, inline="always")
 def get_v_at_pos(num_cells:int, v:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.float64:
     """get vertical velocity at given position"""
     
@@ -170,7 +167,7 @@ def get_v_at_pos(num_cells:int, v:np.ndarray[np.float64], idx:np.ndarray[np.floa
     i, fi = clamp_index(num_cells + 1, i, fi)
     return bilerp(v, (i, j), (fi, fj))
 
-@njit("float64(uint16, float64[:, :], float64[:])", cache=False, inline="always")
+@njit("float64(uint16, float64[:, :], float64[:])", cache=True, inline="always")
 def get_density_at_pos(num_cells:int, s:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.float64:
     """get smoke density at a given position"""
 
@@ -179,7 +176,7 @@ def get_density_at_pos(num_cells:int, s:np.ndarray[np.float64], idx:np.ndarray[n
     j, fj = clamp_index(num_cells, j, fj)
     return bilerp(s, (i, j), (fi, fj))
 
-@njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=False, parallel=True, fastmath=True)
+@njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True, fastmath=True)
 def semi_lagrangian_advect_velocity(dt:float, cell_size:float, num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], nu:np.ndarray[np.float64], nv:np.ndarray[np.float64]) -> None:
     """calculate new velocity by backtracking by dt and bilinear interpolate between 4 cells"""
     
@@ -222,7 +219,7 @@ div on left side, bad boundary checking, now fixed but advect step access index 
 now program breaks after 1 sec
 """
 
-@njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :],  float64[:, :])", cache=False, parallel=True, fastmath=True)
+@njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :],  float64[:, :])", cache=True, parallel=True, fastmath=True)
 def semi_lagrangian_advect_smoke(dt:float, cell_size:float, num_cells:int, w:np.ndarray[np.uint8], s:np.ndarray[np.float64], ns:np.ndarray[np.float64], u:np.ndarray[np.float64], v:np.ndarray[np.float64]) -> None:
     """calculate new smoke density by backtracking by dt and bilinear interpolate between 4 cells"""
     

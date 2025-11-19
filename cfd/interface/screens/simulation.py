@@ -9,7 +9,6 @@ from cfd.interface.config import config
 from cfd.interface.widgets import Widget, NULLWIDGET, Info, RectButton, Dropdown, Slidebar
 from cfd.utilities.screen_helper import TITLE_POS, get_grid
 from cfd.simulation.grid import Grid
-from cfd.simulation.algorithms import get_velocity_at_pos, get_density_at_pos
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ class SimulationScreen:
         self.base_img = np.zeros([self.grid.num_cells, self.grid.num_cells, 3], dtype=np.uint8)
         self.vel_img = np.zeros((self.grid.grid_size[1], self.grid.grid_size[0], 3), dtype=np.uint8)
         self.img_surf = pg.surfarray.make_surface(self.vel_img)
-        self.wind_tunnel = True
+        self.wind_tunnel = False
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_hover(self, mouse_pos: tuple) -> None:        
@@ -167,12 +166,12 @@ class SimulationScreen:
             self._handle_drag(mouse_pos, mouse_rel, left, mid, right)
         if event.type == pg.MOUSEBUTTONDOWN and mouse.get_pressed()[0]:
             self._handle_click()
-        if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
+        if event.type == pg.MOUSEBUTTONUP and not mouse.get_pressed()[0]:
             self.brush_size_sb.dragging = False
         
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_SPACE:
-                self.wind_tunnel != self.wind_tunnel
+                self.wind_tunnel = not self.wind_tunnel
     
     
     #   ==========[ UPDATE ]==========
@@ -226,22 +225,27 @@ class SimulationScreen:
         project = self.proj_field_btn.text == "On"
         
         #   1. add external sources
+        
+        #   gravity
+        is_wall = np.empty_like(self.grid.v, dtype=np.bool)
+        is_wall[0, :] = is_wall[-1, :] = is_wall[:, 0] = is_wall[:, -1] = False
+        is_wall[1:-1, 1:-1] = (self.grid.w[1:-1, :-1] == 1) & (self.grid.w[1:-1, 1:] == 1)
+        self.grid.v[is_wall] += self.dt * -9.81
+        
+        #   wind tunnel inflow
         if self.wind_tunnel:
-            self.grid.u[1, 1:-1] = 7
+            self.grid.u[0:2, 1:-1] = 15
             self.grid.s[0, self.grid.num_cells//2-int(self.grid.scale):self.grid.num_cells//2+int(self.grid.scale)+1] = 1
             
         #   2. clears out divergence to enforce incompressibility
         if project:
             self.grid.calculate_divergence()
-            self.grid.calculate_pressure(100, 1.6)
+            self.grid.calculate_pressure(100, 1.7)
             self.grid.project_velocities()
-        
-        #   3. manage boundary values
-        self.grid.set_boundary_values()
-        
+
         #   4. update screen  
         self.grid.calculate_divergence()
-        self._update_screen()   
+        self._update_screen()
         
         #   5. move velocities and smoke
         np.clip(self.grid.s, 0, 1, out=self.grid.s)

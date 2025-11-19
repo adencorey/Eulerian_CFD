@@ -22,19 +22,25 @@ class SettingsScreen:
         self.title_pos = TITLE_POS
         
         #   ==========[ THEME SETTING ]==========
-        self.theme_info = Info(name="theme_info", title="Theme", pos=get_grid(3, 7), description="Colour scheme of the program.")
+        self.theme_info = Info(name="theme_info", title="Theme", pos=get_grid(3, 7), description="Appearance of the program.")
         self.theme_drp = Dropdown(name="theme_drp", rect=pg.Rect(get_grid(3, 8), self.drp_size), options=["light", "dark"], setting=settings.theme_name)
 
         #   ==========[ FPS SETTING ]==========
-        self.fps_info = Info(name="fps_info", title="Frame Rate", pos=get_grid(3, 15), description="Frame per second of the program.")
-        self.fps_drp = Dropdown(name="fps_drp", rect=pg.Rect(get_grid(3, 16), self.drp_size), options=["30", "60", "120"], setting=settings.fps)
+        self.fps_info = Info(name="fps_info", title="Frame Per Second", pos=get_grid(3, 14), description="Number of screen draws per second, only affect visuals. High performance load")
+        self.fps_drp = Dropdown(name="fps_drp", rect=pg.Rect(get_grid(3, 15), self.drp_size), options=["30", "60", "120"], setting=settings.fps)
         
-        #   ==========[ SHOW FPS SETTING ]==========
-        self.shw_fps_info = Info(name="shw_fps_info", title="Show FPS", pos=get_grid(3, 17), description="Display frame rate on screen.")
+        self.shw_fps_info = Info(name="shw_fps_info", title="Show FPS", pos=get_grid(3, 17))
         self.shw_fps_drp = Dropdown(name="shw_fps_drp", rect=pg.Rect(get_grid(3, 18), self.drp_size), options=["true", "false"], setting=settings.show_fps)
         
-        self.dropdowns:list[Dropdown] = [self.theme_drp, self.fps_drp, self.shw_fps_drp]
-        self.infos: list[Info] = [self.theme_info, self.fps_info, self.shw_fps_info]
+        #   ==========[ TPS SETTING ]==========
+        self.tps_info = Info(name="tps_info", title="Tick Per Second", pos=get_grid(3, 20), description="Number of updates per second, affect physics and mouse drags. High performance load")
+        self.tps_drp = Dropdown(name="tps_drp", rect=pg.Rect(get_grid(3, 21), self.drp_size), options=["120", "180", "240"], setting=settings.tps)
+        
+        self.shw_tps_info = Info(name="shw_tps_info", title="Show TPS", pos=get_grid(3, 23))
+        self.shw_tps_drp = Dropdown(name="shw_tps_drp", rect=pg.Rect(get_grid(3, 24), self.drp_size), options=["true", "false"], setting=settings.show_tps)
+        
+        self.dropdowns:list[Dropdown] = [self.theme_drp, self.fps_drp, self.shw_fps_drp, self.tps_drp, self.shw_tps_drp]
+        self.infos: list[Info] = [self.theme_info, self.fps_info, self.shw_fps_info, self.tps_info, self.shw_tps_info]
         self.hovering: Widget = NULLWIDGET
         
     
@@ -82,14 +88,21 @@ class SettingsScreen:
                 self.theme_drp.clicked(settings.theme_name)
                 
             elif self.fps_drp.hovering.name:
-                settings.fps = int(self.fps_drp.hovering.text.lower())
+                settings.fps = int(self.fps_drp.hovering.text)
                 self.fps_drp.clicked(settings.fps)
             
             elif self.shw_fps_drp.hovering.name:
                 settings.show_fps = self.shw_fps_drp.hovering.text.lower() == "true"
                 self.shw_fps_drp.clicked(settings.show_fps)
+                
+            elif self.tps_drp.hovering.name:
+                settings.tps = int(self.tps_drp.hovering.text)
+                self.tps_drp.clicked(settings.tps)
             
-            #   change settings accordingly
+            elif self.shw_tps_drp.hovering.name:
+                settings.show_tps = self.shw_tps_drp.hovering.text.lower() == "true"
+                self.shw_tps_drp.clicked(settings.show_tps)
+            
             settings.save()
             config.update()
             
