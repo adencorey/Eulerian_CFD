@@ -9,7 +9,7 @@ def ghost_cells_boundary_check(u:np.ndarray[np.float64], v:np.ndarray[np.float64
     s[0, :] = s[-1, :] = s[:, 0] = s[:, -1] = 0
 
 @njit("void(uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True)
-def free_slip_boundary_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], s:np.ndarray[np.float64]) -> None:
+def free_slip_wall_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], s:np.ndarray[np.float64]) -> None:
     """set velocity to 0 at wall cells"""
     
     for i in prange(1, num_cells):
@@ -24,7 +24,8 @@ def free_slip_boundary_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray
     
     for i in prange(num_cells):
         for j in prange(num_cells):
-            if w[i, j] == 0: s[i, j] = 0
+            if w[i, j] == 0: 
+                s[i, j] = 0
                 
             
 #   ==========[ PROJECTION ]==========
@@ -98,8 +99,8 @@ blew up again: wrong code (add press grad in y bc of screen coord)
 def bilerp(field:np.ndarray[np.float64], floor:tuple[np.int16], fract:tuple[np.float64]) -> np.float64:
     """
     bilinear interpolate between 4 points\n
-    floor - index of topleft
-    fract - proportion from left to right, top to bottom
+    :param floor: index of topleft
+    :param fract: proportion from left to right, top to bottom
     """
     i, j = floor
     fi, fj = fract
@@ -133,23 +134,12 @@ def split_index(idx:np.ndarray[np.float64]) -> tuple[np.ndarray[np.int16], np.nd
 @njit("float64[:](uint16, float64[:, :], float64[:, :], float64[:])", cache=True, inline="always")
 def get_velocity_at_pos(num_cells:int, u:np.ndarray[np.float64], v:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.ndarray[np.float64, np.float64]:
     """get velocity at given position where vertical velocity is negated for screen coordinates"""
-    
-    """
-    i, j = np.floor(idx).astype(np.uint16)
-    fi, fj = idx - np.array((i, j))
-    i, fi = clamp_index(i, fi)
-    j, fj = clamp_index(j, fj)
-    x_vel = bilerp(u, (i, j), (fi, fj))
-    y_vel = bilerp(v, (i, j), (fi, fj))
-    
-    problem: u and v are stored in diff pos, so need to clamp separately
-    """
     (ui, vj), (fui, fvj) = split_index(idx)
     uj, fuj = clamp_index(num_cells + 1, vj, fvj)
     vi, fvi = clamp_index(num_cells + 1, ui, fui)
     x_vel = bilerp(u, (ui, uj), (fui, fuj))
     y_vel = bilerp(v, (vi, vj), (fvi, fvj))
-    return np.array((x_vel, -y_vel))        #   negate y for screen coord
+    return np.array((x_vel, -y_vel))
 
 @njit("float64(uint16, float64[:, :], float64[:])", cache=True, inline="always")
 def get_u_at_pos(num_cells:int, u:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.float64:
@@ -168,7 +158,7 @@ def get_v_at_pos(num_cells:int, v:np.ndarray[np.float64], idx:np.ndarray[np.floa
     return bilerp(v, (i, j), (fi, fj))
 
 @njit("float64(uint16, float64[:, :], float64[:])", cache=True, inline="always")
-def get_density_at_pos(num_cells:int, s:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.float64:
+def get_smoke_at_pos(num_cells:int, s:np.ndarray[np.float64], idx:np.ndarray[np.float64]) -> np.float64:
     """get smoke density at a given position"""
 
     (i, j), (fi, fj) = split_index(idx)
@@ -197,7 +187,7 @@ def semi_lagrangian_advect_velocity(dt:float, cell_size:float, num_cells:int, w:
     
     #   advect vertical velocities
     for i in prange(1, num_cells - 1):
-        for j in range(1, num_cells):
+        for j in prange(1, num_cells):
             if w[i, j] == 0 or w[i, j-1] == 0: 
                 nv[i, j] = 0
                 continue
@@ -210,14 +200,6 @@ def semi_lagrangian_advect_velocity(dt:float, cell_size:float, num_cells:int, w:
             new_idx = old_idx - old_vel * dt
             nv[i, j] = get_v_at_pos(num_cells, v, new_idx)
 
-"""
-31st Oct: First attempt, seems like we have got a syntax error, numba doesn't allow astype(int) so I changed it
-Second attempt, making a mess in divergence and making pointy shape (unphysical). Seems like y vel is wrong bc of screen coord sys
-Thrid attempt, works fine horizontally, but it wobbles between +/- y, and they dont like to move up or down. Problem is I forgot to negate velocity when assigning real one
-
-div on left side, bad boundary checking, now fixed but advect step access index out of bounds so need to clamp
-now program breaks after 1 sec
-"""
 
 @njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :],  float64[:, :])", cache=True, parallel=True, fastmath=True)
 def semi_lagrangian_advect_smoke(dt:float, cell_size:float, num_cells:int, w:np.ndarray[np.uint8], s:np.ndarray[np.float64], ns:np.ndarray[np.float64], u:np.ndarray[np.float64], v:np.ndarray[np.float64]) -> None:
@@ -235,14 +217,7 @@ def semi_lagrangian_advect_smoke(dt:float, cell_size:float, num_cells:int, w:np.
 
             #   backtrack
             new_idx = old_idx - old_vel * dt
-            ns[i, j] = get_density_at_pos(num_cells, s, new_idx)
-
-"""
-31st oct: first attempt, even though velocity is 0 density is moving to topleft, seems like get_density_at_pos() is a little bit off when same pos is input
-Turns out I forgot to clamp index to center of cell, I was interpolating using the topleft corner
-"""
-
-
+            ns[i, j] = get_smoke_at_pos(num_cells, s, new_idx)
 
 """
 31st Oct: Tries to build a wind tunnel, albeit the high neg divergence and high overall pressuree. Vortex shredding can be shown.

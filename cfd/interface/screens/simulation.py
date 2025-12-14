@@ -144,10 +144,12 @@ class SimulationScreen:
             if left:
                 rx, ry = mouse_rel                                                                  #   velocity in pixel/tick
                 px_to_m_scale = self.grid.cell_size / self.grid.cell_px                             #   convertion scalar from pixel to meter, unit: meter/pixel
-                self.grid.u[i_start:i_end, j_start:j_end] += rx * px_to_m_scale / self.dt * weight   #   convert to ms-1: pixel * (meter/pixel) / second = meter/second
+                self.grid.u[i_start:i_end, j_start:j_end] += rx * px_to_m_scale / self.dt * weight  #   convert to ms-1: pixel * (meter/pixel) / second = meter/second
                 self.grid.v[i_start:i_end, j_start:j_end] -= ry * px_to_m_scale / self.dt * weight
+                #self.grid.s[i_start:i_end, j_start:j_end] += weight
+                #np.clip(self.grid.s, 0, 1, out=self.grid.s)
             
-            if mid or (left and right):
+            if mid:
                 self.grid.w[i_start:i_end, j_start:j_end] = 1 - np.clip((weight * 2 * radius).astype(int), 0, 1)
                 
             if right:
@@ -225,22 +227,18 @@ class SimulationScreen:
         project = self.proj_field_btn.text == "On"
         
         #   1. add external sources
-        
-        #   gravity
-        is_wall = np.empty_like(self.grid.v, dtype=np.bool)
-        is_wall[0, :] = is_wall[-1, :] = is_wall[:, 0] = is_wall[:, -1] = False
-        is_wall[1:-1, 1:-1] = (self.grid.w[1:-1, :-1] == 1) & (self.grid.w[1:-1, 1:] == 1)
-        self.grid.v[is_wall] += self.dt * -9.81
-        
-        #   wind tunnel inflow
+        #self.grid.v[1:-1, 1:-1] += self.dt * -9.81      #   gravity
+
         if self.wind_tunnel:
             self.grid.u[0:2, 1:-1] = 15
             self.grid.s[0, self.grid.num_cells//2-int(self.grid.scale):self.grid.num_cells//2+int(self.grid.scale)+1] = 1
+        
+        self.grid.set_boundary_values()
             
         #   2. clears out divergence to enforce incompressibility
         if project:
             self.grid.calculate_divergence()
-            self.grid.calculate_pressure(100, 1.7)
+            self.grid.calculate_pressure(50, 1.7)
             self.grid.project_velocities()
 
         #   4. update screen  

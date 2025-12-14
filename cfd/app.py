@@ -1,8 +1,9 @@
 import pygame as pg
 
+from typing import Generator
+import traceback
 import logging
 import sys
-from typing import Generator
 
 from cfd.settings.manager import settings
 from cfd.interface.config import Events, Screens, Delay
@@ -67,38 +68,42 @@ class App:
             interval = max(tps / settings.fps, 1)
             
             typing = False
-            for event in pg.event.get():
-                self.tool_bar.handle_events(event)
-                self.current_screen.handle_events(event)
-                
-                if event.type == Events.CLEAR_INPUT: 
-                    keyboard_inp = ""
+            try:
+                for event in pg.event.get():
+                    self.tool_bar.handle_events(event)
+                    self.current_screen.handle_events(event)
                     
-                if event.type == Events.KEYBOARD_INPUT: 
-                    typing = True
-                    max_char = event.max_char
-                
-                if event.type == pg.QUIT or event.type == Events.QUIT_PROGRAM:
-                    self.running = False
-                
-                if event.type == Events.SCREEN_SWITCH:
-                    try:
-                        highlighting = event.highlighting
-                    except:
-                        highlighting = None
-                    self.set_screen(event.screen_id, highlighting)
-                
-                if typing:                
-                    if event.type == pg.KEYDOWN:
-                        if event.key == pg.K_BACKSPACE:
-                            keyboard_inp = keyboard_inp[:-1]
-                    if event.type == pg.TEXTINPUT:
-                        if len(keyboard_inp) < max_char:
-                            keyboard_inp += event.text
-                    self.current_screen.handle_type(keyboard_inp)
+                    if event.type == Events.CLEAR_INPUT: 
+                        keyboard_inp = ""
+                        
+                    if event.type == Events.KEYBOARD_INPUT: 
+                        typing = True
+                        max_char = event.max_char
+                    
+                    if event.type == pg.QUIT or event.type == Events.QUIT_PROGRAM:
+                        self.running = False
+                    
+                    if event.type == Events.SCREEN_SWITCH:
+                        try:
+                            highlighting = event.highlighting
+                        except:
+                            highlighting = None
+                        self.set_screen(event.screen_id, highlighting)
+                    
+                    if typing:                
+                        if event.type == pg.KEYDOWN:
+                            if event.key == pg.K_BACKSPACE:
+                                keyboard_inp = keyboard_inp[:-1]
+                        if event.type == pg.TEXTINPUT:
+                            if len(keyboard_inp) < max_char:
+                                keyboard_inp += event.text
+                        self.current_screen.handle_type(keyboard_inp)
 
-                if event.type == Events.DELAY_FUNCTION:
-                    self.delay_queue.append(event.function)
+                    if event.type == Events.DELAY_FUNCTION:
+                        self.delay_queue.append(event.function)
+            except Exception:
+                traceback.print_exc()
+                raise
                     
             self.current_screen.update(dt)
             self.delay_queue.update()

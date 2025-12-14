@@ -34,7 +34,7 @@ class Grid:
         self.w[1:-1, 1] = 0
         self.w[1:-1, -2] = 0
         #self.w[1, 2:-2] = 0
-        #self.w[-2, 2:-2] = 0
+        self.w[-2, 2:-2] = 0
         
         #   velocity field
         self.u = np.zeros((self.num_cells + 1, self.num_cells), dtype=np.float64)
@@ -61,18 +61,10 @@ class Grid:
             idx = None if np.any((idx < 0) | (idx >= self.num_cells)) else tuple(idx.tolist())
         return idx
     
-    def get_center_vel(self) -> tuple[np.ndarray, np.ndarray]:
-        """calculate average velocity at cell centers"""
-        
-        u = 0.5 * (self.u[:-1, :] + self.u[1:, :])
-        v = 0.5 * (self.v[:, :-1] + self.v[:, 1:])
-        return u, v
-    
     #   ==========[ UPDATE ]==========
     def set_boundary_values(self) -> None:
-        free_slip_boundary_check(self.num_cells, self.w, self.u, self.v, self.s)
-        ghost_cells_boundary_check(self.u, self.v, self.s)
-        
+        free_slip_wall_check(self.num_cells, self.w, self.u, self.v, self.s)
+    
     def calculate_divergence(self) -> None:
         get_divergence_field(self.num_cells, self.cell_size, self.w, self.u, self.v, self.div)
     
@@ -84,12 +76,12 @@ class Grid:
     
     def advect_velocities(self) -> None:
         semi_lagrangian_advect_velocity(self.dt, self.cell_size, self.num_cells, self.w, self.u, self.v, self.nu, self.nv)
-        self.u[:, :] = self.nu[:, :]
-        self.v[:, :] = self.nv[:, :]
+        self.u[:, :] = self.nu
+        self.v[:, :] = self.nv
     
     def advect_smoke(self) -> None:
         semi_lagrangian_advect_smoke(self.dt, self.cell_size, self.num_cells, self.w, self.s, self.ns, self.u, self.v)
-        self.s[:, :] = self.ns[:, :]
+        self.s[:, :] = self.ns
         
     #   ==========[ DRAW ]==========
     def get_walls_field_img(self, img:np.ndarray) -> None:
@@ -118,27 +110,43 @@ class Grid:
         
         #   normalise
         p = self.p
-        max_p = np.percentile(np.abs(p), 97)   #   get 98th percentile to remove velocity spikes
-        if max_p == 0:
-            img[:, :] = (0, 0, 0)
-            return
+        max_p = np.percentile(np.abs(p), 95)   #   get 98th percentile to remove velocity spikes
         np.clip(p, -max_p, max_p, out=p)
-        norm = 0.5 * (p / max_p) + 0.5
+        if max_p <= 0.1 * self.density:
+            norm = 0.5 * np.ones_like(p)
+        else:
+            norm = 0.5 * (p / max_p) + 0.5
         
         #   jet colourmap (rainbow gradient)
         r = np.where(norm < 0.5, 0, np.where(norm < 0.75, (255 * 4 * (norm - 0.5)), 255)).astype(np.uint8)
         g = np.where(norm < 0.25, (255 * 4 * norm), np.where(norm < 0.75, 255, (255 * 4 * (1 - norm)))).astype(np.uint8)
         b = np.where(norm < 0.25, 255, np.where(norm < 0.5, (255 * 4 * (0.5 - norm)), 0)).astype(np.uint8)
-        img[:, :] = np.stack(self.s * (r, g, b), axis=-1)
+        scale = np.clip(1.5 * self.s, 0, 1)
+        img[:, :] = np.stack((r, g, b), axis=-1)
+    """
+    def get_pressure_field_img(self, img) -> None:
+        #   normalisation
+        p = self.p
+        abs_max = np.max(np.abs(p))
+        norm = p / abs_max if abs_max > 0 else np.zeros_like(p)
+        norm = 0.5 * norm + 0.5
+        
+        #   jet colourmap (rainbow gradient)
+        r = np.where(norm < 0.5, 0, np.where(norm < 0.75, (255 * 4 * (norm - 0.5)), 255)).astype(np.uint8)
+        g = np.where(norm < 0.25, (255 * 4 * norm), np.where(norm < 0.75, 255, (255 * 4 * (1 - norm)))).astype(np.uint8)
+        b = np.where(norm < 0.25, 255, np.where(norm < 0.5, (255 * 4 * (0.5 - norm)), 0)).astype(np.uint8)
+        img[:, :] = np.stack((r, g, b), axis=-1)
+    """
         
     def get_velocity_field_img(self, img:np.ndarray) -> None:
 
-        u, v = self.get_center_vel()
+        u = 0.5 * (self.u[:-1, :] + self.u[1:, :])
+        v = 0.5 * (self.v[:, :-1] + self.v[:, 1:])
         vel = np.stack((-v, u))  #  negate v for screen coordinates
         
         mag = np.zeros_like(u)
         mag[1:-1, 1:-1] = np.sqrt(np.sum(vel[:, 1:-1, 1:-1] ** 2, axis=0)) / self.cell_size * self.cell_px
-        np.clip(mag, 0, self.cell_px, out=mag)
+        mag_clipped = np.clip(mag, 0, self.env_length / self.cell_size * 2 * self.cell_px)
         
         is_mag = mag > 0
         d = np.zeros_like(vel)
@@ -147,7 +155,7 @@ class Grid:
         #   draw velocity lines
         steps = np.linspace(0, 1, 25)
         for step in steps:
-            pos = (self.pos[:, is_mag] + mag[is_mag] * d[:, is_mag] * step).astype(int)
+            pos = (self.pos[:, is_mag] + mag_clipped[is_mag] * d[:, is_mag] * step).astype(int)
             valid = (pos[0] > 0) & (pos[0] < self.grid_size[0]) & (pos[1] > 0) & (pos[1] < self.grid_size[1])
             colour = (128, 128, 128) if step < 0.6 else (0, 128, 128)
             img[pos[1][valid], pos[0][valid]] = colour
