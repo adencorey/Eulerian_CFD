@@ -8,4 +8,4 @@ def get_grid(row, col) -> tuple[int, int]:
     x_off, y_off = 0.04 * config.width, 0.02 * config.width
     return tuple(np.round((row * config.width / 30 + x_off, col * config.height / 30 + y_off)).tolist())
 
-TITLE_POS = get_grid(2, 3)
+TITLE_POS = get_grid(1, 3)

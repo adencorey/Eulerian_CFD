@@ -55,7 +55,8 @@ def poisson_pressure_solve(dt:float, num_cells:int, cell_size_sq:float, density:
                     continue
                 
                 #   new pressure = (sum of adj pressures - (density * cell size ** 2 * velocity flux / dt)) / num of adj cells
-                new_p = (((p[i-1, j] * w_l) + (p[i+1, j] * w_r) + (p[i, j-1] * w_t) + (p[i, j+1] * w_b)) - cell_size_sq * density * div[i, j] / dt) / num_fluid_cells
+                adj_p_sum = (p[i-1, j] * w_l) + (p[i+1, j] * w_r) + (p[i, j-1] * w_t) + (p[i, j+1] * w_b)
+                new_p = (adj_p_sum - cell_size_sq * density * div[i, j] / dt) / num_fluid_cells
                 p[i, j] += (new_p - p[i, j]) * sor_weight       #   successive over-relaxation    
     return p
                 
@@ -87,12 +88,7 @@ def pressure_projection(dt:float, num_cells:int, cell_size:float, density:float,
                 v[i, j] -= k * -dpdy         #  negate for screen coords
             else:
                 v[i, j] = 0
-
-"""
-29/10: pressure projection exploded
-fixed: wrong code (k = cell_size / dt and top - center)
-blew up again: wrong code (add press grad in y bc of screen coord)
-"""
+                
 
 #   ==========[ ADVECTION ]==========
 @njit("float64(float64[:, :], int16[:], float64[:])", cache=True, inline="always")
@@ -220,7 +216,70 @@ def semi_lagrangian_advect_smoke(dt:float, cell_size:float, num_cells:int, w:np.
             ns[i, j] = get_smoke_at_pos(num_cells, s, new_idx)
 
 """
-31st Oct: Tries to build a wind tunnel, albeit the high neg divergence and high overall pressuree. Vortex shredding can be shown.
+31st Oct: Tries to build a wind tunnel. Albeit the high neg divergence and high overall pressuree, vortex shredding can be shown.
 Seems like boundary check is done badly, mass cannot leave system and hence compresses, and pressure rises to resist inflow.
 changed to only copy interior values if outflow else stay as it is
 """
+
+#   ==========[ DIFFUSION ]==========
+@njit("void(float32, uint16, uint8[:, :], float64[:, :], uint16, float32)", cache=True, fastmath=True)
+def smoke_diffusion(dt:float, num_cells:int, w:np.ndarray[np.uint8], s:np.ndarray[np.float64], iter:int, sor_weight:float) -> None:
+    """diffuse smoke iteratively (Gauss-Seidel)"""
+    
+    kinematic_viscosity = 2e-9 / dt
+    for _ in range(iter):
+        for i in range(1, num_cells - 1):
+            for j in range(1, num_cells - 1):
+                w_l = w[i-1, j]
+                w_r = w[i+1, j]
+                w_t = w[i, j-1]
+                w_b = w[i, j+1]
+                num_fluid_cells = w_l + w_r + w_t + w_b
+                if w[i, j] == 0 or num_fluid_cells == 0:
+                    s[i, j] = 0
+                    continue
+                
+                #   new smoke density = (current smoke density + scalar * (average adjacent smoke density)) / (1 + scalar)
+                adj_s_avg = 0.25 * (s[i-1, j] + s[i+1, j] + s[i, j-1] + s[i, j+1])
+                new_s = (s[i, j] + kinematic_viscosity * adj_s_avg) / (1 + kinematic_viscosity)
+                s[i, j] += (new_s - s[i, j]) * sor_weight       #   successive over-relaxation    
+#                
+#@njit("void(float32, uint16, uint8[:, :], float64[:, :], float64[:, :], uint16, float32)", cache=True, fastmath=True)
+#def velocity_diffusion(dt:float, num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], iter:int, sor_weight:float) -> None:
+#    """diffuse velocity iteratively (Gauss-Seidel)"""
+#    
+#    dynamic_viscosity = 10 * dt
+#    for _ in range(iter):
+#        #   diffuse velocities horizontally
+#        for i in range(1, num_cells):
+#            for j in range(1, num_cells - 1):
+#                w_l = w[i-1, j]
+#                w_r = w[i+1, j]
+#                w_t = w[i, j-1]
+#                w_b = w[i, j+1]
+#                num_fluid_cells = w_l + w_r + w_t + w_b
+#                if w[i, j] == 0 or num_fluid_cells == 0:
+#                    u[i, j] = 0
+#                    continue
+#                
+#                #   new smoke density = (current smoke density + scalar * (average adjacent smoke density)) / (1 + scalar)
+#                adj_s_avg = 0.25 * (u[i-1, j] + u[i+1, j] + u[i, j-1] + u[i, j+1])
+#                new_s = (u[i, j] + dynamic_viscosity * adj_s_avg) / (1 + dynamic_viscosity)
+#                u[i, j] += (new_s - u[i, j]) * sor_weight       #   successive over-relaxation    
+#        
+#        #   diffuse velocities vertically
+#        for i in range(1, num_cells - 1):
+#            for j in range(1, num_cells):
+#                w_l = w[i-1, j]
+#                w_r = w[i+1, j]
+#                w_t = w[i, j-1]
+#                w_b = w[i, j+1]
+#                num_fluid_cells = w_l + w_r + w_t + w_b
+#                if w[i, j] == 0 or num_fluid_cells == 0:
+#                    v[i, j] = 0
+#                    continue
+#                
+#                #   new smoke density = (current smoke density + scalar * (average adjacent smoke density)) / (1 + scalar)
+#                adj_s_avg = 0.25 * (v[i-1, j] + v[i+1, j] + v[i, j-1] + v[i, j+1])
+#                new_s = (v[i, j] + dynamic_viscosity * adj_s_avg) / (1 + dynamic_viscosity)
+#                v[i, j] += (new_s - v[i, j]) * sor_weight       #   successive over-relaxation    

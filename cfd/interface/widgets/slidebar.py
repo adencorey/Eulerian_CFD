@@ -1,12 +1,13 @@
 import pygame as pg
 import numpy as np
 
+from cfd.interface.config import config
 from .widget import Widget
 
 class Slidebar(Widget):
     
-    def __init__(self, name:str, rect:pg.Surface, min_val:float, max_val:float, step:float, default:float) -> None:
-        super().__init__(name=name, rect=rect, anchor="center")
+    def __init__(self, name:str, rect:pg.Surface, min_val:float, max_val:float, step:float, default:float, font=config.font["sub"]) -> None:
+        super().__init__(name=name, rect=rect, font=font, anchor="center")
         
         if step <= 0: raise ValueError("val_step must be greater than zero")
         val_range = max_val - min_val

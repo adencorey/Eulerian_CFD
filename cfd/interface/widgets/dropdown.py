@@ -7,10 +7,10 @@ from .widget import Widget, NULLWIDGET
 
 class Dropdown(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, options:list[str], setting, anchor:str=None) -> None:
+    def __init__(self, name:str, rect:pg.Rect, options:list[str], setting, font=config.font["body"], anchor:str=None) -> None:
         
         self.text = self.get_selected(setting)
-        super().__init__(name=name, rect=rect, anchor=anchor, text=self.text)
+        super().__init__(name=name, rect=rect, anchor=anchor, text=self.text, font=font)
         
         self.show = False
         self.hovering: DropdownChild = NULLWIDGET
@@ -22,7 +22,8 @@ class Dropdown(Widget):
             self.children.append(DropdownChild(
                 name=f"{self.name}.{options[i]}",
                 rect=rect.copy().move(0, (i + 1) * rect.height),
-                text=options[i].capitalize()
+                text=options[i].capitalize(),
+                font=self.font
             ))
     
     #   ==========[ UTILITIES ]==========
@@ -93,9 +94,8 @@ class Dropdown(Widget):
         
 class DropdownChild(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, text:str) -> None:
-        super().__init__(name=None, rect=rect, text=text)
-        
+    def __init__(self, name:str, rect:pg.Rect, text:str, font) -> None:
+        super().__init__(name=None, rect=rect, text=text, font=font)
         self.name = name
         
     def _update_colours(self, hvr_name, hl_name):

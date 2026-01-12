@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 class LibraryScreen:
     
-    def __init__(self) -> None:
+    def __init__(self, app) -> None:
+        from cfd.app import App
+        self.app: App = app
         
         self.title_surf = config.font["title"].render("Library", True, config.main_clr)        
         self.btn_dim = (int(0.2 * config.width), int(0.05 * config.height))
@@ -30,9 +32,9 @@ class LibraryScreen:
         self.projects: list[ProjectButton] = []
         col = 7
         for project in project_entries:
-            name, _, metadata = project.values()
+            name, path, _, metadata = project.values()
             widget_name = f"{name.replace(' ', '-')}_proj_btn"
-            self.projects.append(ProjectButton(name=widget_name, rect=pg.Rect(get_grid(12, col), self.proj_dim), text=name, metadata=metadata))
+            self.projects.append(ProjectButton(name=widget_name, rect=pg.Rect(get_grid(12, col), self.proj_dim), text=name, metadata=metadata, path=path))
             col += 4
         
         #   ==========[ PROJECT COUNT LABEL ]==========
@@ -42,39 +44,37 @@ class LibraryScreen:
         
         self.buttons: list[RectButton | ProjectButton] = [self.crt_btn] + self.alter_buttons + self.projects
         self.infos: list[Info] = [self.proj_count_info]
-        self.hovering: Widget = NULLWIDGET
-        self.highlighting: Widget = NULLWIDGET
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_hover(self, mouse_pos: tuple) -> None:
         """checks if mouse is colliding with a button"""
         
-        hovering = self.hovering
+        hovering = self.app.hovering
         hovered = NULLWIDGET
         for widget in chain(self.buttons, self.infos):
             if widget.collide(mouse_pos):
                 hovered = widget
                 break
             
-        self.hovering = hovered        
-        if hovering != self.hovering:
-            logger.debug(f"Hovering {self.hovering.name}")
+        self.app.hovering = hovered        
+        if hovering != self.app.hovering:
+            logger.debug(f"Hovering {self.app.hovering.name}")
     
     def _handle_click(self) -> str | None:
         """calls function if a button is clicked"""
         
-        if not self.hovering.name:
-            self.highlighting = NULLWIDGET
+        if not self.app.hovering.name:
+            self.app.highlighted = NULLWIDGET
             return
         event = None
         extra_data = {}
         clicked = False
         
         for project in self.projects:
-            if self.hovering.id == project.id:
+            if self.app.hovering.id == project.id:
                 
                 if not project.double_click:
-                    self.highlighting = project
+                    self.app.highlighted = project
                     event = Events.DELAY_FUNCTION
                     extra_data["function"] = project.toggle_double_click()
                     for button in self.alter_buttons:
@@ -83,12 +83,13 @@ class LibraryScreen:
                 else:
                     event = Events.SCREEN_SWITCH
                     extra_data["screen_id"] = Screens.SIMULATION.value
+                    extra_data["project_path"] = project.path
                     
                 clicked = True
                 break
         
         if not clicked:
-            match self.hovering.id:
+            match self.app.hovering.id:
                 
                 case self.crt_btn.id:
                     if not self.crt_btn.disabled:
@@ -99,7 +100,6 @@ class LibraryScreen:
                     if not self.edit_btn.disabled:
                         event = Events.SCREEN_SWITCH
                         extra_data["screen_id"] = Screens.EDIT_PROJ.value
-                        extra_data["highlighting"] = self.highlighting
                 
                 case self.del_btn.id:
                     if not self.del_btn.disabled:
@@ -107,13 +107,13 @@ class LibraryScreen:
                             event = Events.DELAY_FUNCTION
                             extra_data["function"] = self.del_btn.toggle_confirm()
                         else:
-                            if self.highlighting.id:
-                                delete_project(self.highlighting.text)
+                            if self.app.highlighted.id:
+                                delete_project(self.app.highlighted.text)
                                 self.__init__()
                     
                 case _:
                     return
-        logger.debug(f"Clicked {self.hovering.name}")
+        logger.debug(f"Clicked {self.app.hovering.name}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
     def handle_events(self, event: pg.event.Event) -> None:
@@ -127,10 +127,10 @@ class LibraryScreen:
             
 
     #   ==========[ UPDATE ]==========
-    def update(self, dt) -> None:
+    def update(self) -> None:
         for widget in chain(self.buttons, self.infos):
-            widget.update(self.hovering.id, self.highlighting.id)
-        if not self.highlighting.id:
+            widget.update(self.app.hovering.id, self.app.highlighted.id)
+        if not self.app.highlighted.id:
             for button in self.alter_buttons: 
                 button.disabled = True
     
@@ -143,5 +143,5 @@ class LibraryScreen:
         for widget in chain(self.buttons, self.infos):
             widget.draw(screen)
         for info in self.infos:
-            if self.hovering.id == info.id:
+            if self.app.hovering.id == info.id:
                 info.draw_description(screen)

@@ -6,7 +6,6 @@ from cfd.settings.themes import THEME
 
 log = logging.getLogger(__name__)
 
-#   ==========[ SETTINGS ]==========
 class Settings:
 
     def __init__(self, theme_name="dark", fps=60, show_fps=False, tps=120, show_tps=False) -> None:

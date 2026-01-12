@@ -4,7 +4,7 @@ import logging
 from itertools import chain
 
 from cfd.interface.config import Events, Screens, config
-from cfd.interface.widgets import Widget, NULLWIDGET, Info, RectButton, TextBox, Slidebar, ProjectButton
+from cfd.interface.widgets import Widget, NULLWIDGET, Info, RectButton, TextBox, Slidebar
 from cfd.utilities.files_manager import rename_project, edit_project
 from cfd.utilities.screen_helper import get_grid, TITLE_POS
 
@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 class EditProjectScreen:
     
-    def __init__(self, highlighting:ProjectButton) -> None:
+    def __init__(self, app) -> None:
+        from cfd.app import App
+        self.app: App = app
         
         self.btn_size = int(0.2 * config.width), int(0.05 * config.height)
         self.tb_size = int(0.35 * config.width), int(0.06 * config.height)
@@ -42,10 +44,6 @@ class EditProjectScreen:
         self.slidebars: list[Slidebar] = [self.grav_sb]
         self.infos: list[Info] = [self.proj_name_info, self.grav_info]
         
-        self.hovering: Widget = NULLWIDGET
-        self.selected: TextBox = NULLWIDGET
-        self.highlighted = highlighting
-        
         pg.event.post(pg.event.Event(Events.CLEAR_INPUT, {}))
 
         
@@ -53,7 +51,7 @@ class EditProjectScreen:
     def _handle_hover(self, mouse_pos: tuple) -> None:
         """checks if mouse is colliding with a button"""
         
-        hovering = self.hovering
+        hovering = self.app.hovering
         hovered = NULLWIDGET
 
         for widget in chain(self.buttons, self.textboxes, self.slidebars, self.infos):
@@ -61,9 +59,9 @@ class EditProjectScreen:
                 hovered = widget
                 break
             
-        self.hovering = hovered
-        if hovering != self.hovering:
-            logger.debug(f"Hovering {self.hovering.name}")
+        self.app.hovering = hovered
+        if hovering != self.app.hovering:
+            logger.debug(f"Hovering {self.app.hovering.name}")
     
     def _handle_click(self) -> None:
         """calls function if a button is clicked"""
@@ -72,25 +70,25 @@ class EditProjectScreen:
         for textbox in self.textboxes:
             if textbox.selected: 
                 textbox.selected = False
-        self.selected = NULLWIDGET
-        if not self.hovering.id: return
+        self.app.selected = NULLWIDGET
+        if not self.app.hovering.id: return
         
         event = None
         extra_data = {}
         clicked = False
         
         for widget in chain(self.textboxes, self.slidebars):
-            if self.hovering.id == widget.id:
+            if self.app.hovering.id == widget.id:
                 if isinstance(widget, TextBox):
                     widget.selected = True
-                    self.selected = widget
+                    self.app.selected = widget
                 elif isinstance(widget, Slidebar):
                     widget.dragging = True
                 clicked = True
                 break
             
         if not clicked:
-            match self.hovering.id:
+            match self.app.hovering.id:
                 
                 case self.canc_btn.id:
                     event = Events.SCREEN_SWITCH
@@ -98,7 +96,7 @@ class EditProjectScreen:
                     
                 case self.save_btn.id:
                     name = self.proj_textbox.text
-                    rename_project(self.highlighted.text, name)
+                    rename_project(self.app.highlighted.text, name)
                     edit_project(name, {"gravity":self.grav_sb.value})
                     event = Events.SCREEN_SWITCH
                     extra_data["screen_id"] = Screens.LIBRARY.value
@@ -106,7 +104,7 @@ class EditProjectScreen:
                 case _:
                     logger.debug("Clicked None")
             
-        logger.debug(f"Clicked {self.hovering.name}")
+        logger.debug(f"Clicked {self.app.hovering.name}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
     def _handle_drag(self, mouse_pos) -> None:
@@ -129,17 +127,17 @@ class EditProjectScreen:
         if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
             self.grav_sb.dragging = False
             
-        if self.selected.id:
-            pg.event.post(pg.event.Event(Events.KEYBOARD_INPUT, {"max_char": self.selected.max}))
+        if self.app.selected.id:
+            pg.event.post(pg.event.Event(Events.KEYBOARD_INPUT, {"max_char": self.app.selected.max}))
             
     def handle_type(self, text:str) -> None:
-        self.selected.text = text
+        self.app.selected.text = text
     
     
     #   ==========[ UPDATE ]==========    
-    def update(self, dt) -> None:
+    def update(self) -> None:
         for widget in chain(self.buttons, self.textboxes, self.slidebars, self.infos):
-            widget.update(self.hovering.id, -1)
+            widget.update(self.app.hovering.id, -1)
          
     
     #   ==========[ DRAW ]==========
@@ -152,6 +150,6 @@ class EditProjectScreen:
         for widget in chain(self.buttons, self.textboxes, self.slidebars, self.infos):
             widget.draw(screen)
         for info in self.infos:
-            if self.hovering.id == info.id:
+            if self.app.hovering.id == info.id:
                 info.draw_description(screen)
                 break

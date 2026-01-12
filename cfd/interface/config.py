@@ -15,6 +15,7 @@ class Screens(Enum):
     EDIT_PROJ = 2
     SETTINGS = 3
     SIMULATION = 4
+    CONFIG_INIT_PARAM = 5
 
     
 #   ==========[ OBJECT REGISTRY ]==========
@@ -61,14 +62,16 @@ class Config:
         self.width = width
         self.height = height
         
-        self.font_name = "DejaVu Sans"
-        self.body_font_name = "Times"
+        DEJAVU = "DejaVu Sans"
+        TIMES = "Times"
+        ARIAL = "Arial"
         self.font = {
-            "title" : pg.font.SysFont(self.font_name, int(0.04 * height)),
-            "head"  : pg.font.SysFont(self.font_name, int(0.03 * height)),
-            "body"  : pg.font.SysFont(self.body_font_name, int(0.03 * height)),
-            "par"   : pg.font.SysFont(self.body_font_name, int(0.02 * height)),
-            "sub"   : pg.font.SysFont(self.font_name, int(0.025 * height))
+            "title" : pg.font.SysFont(DEJAVU, int(0.04 * height)),
+            "head"  : pg.font.SysFont(DEJAVU, int(0.03 * height)),
+            "body"  : pg.font.SysFont(TIMES, int(0.03 * height)),
+            "par"   : pg.font.SysFont(TIMES, int(0.024 * height)),
+            "sub"   : pg.font.SysFont(ARIAL, int(0.024 * height)),
+            "sml"   : pg.font.SysFont(ARIAL, int(0.0175 * height))
         }
         
         self.update()

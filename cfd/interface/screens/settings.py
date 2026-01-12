@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 class SettingsScreen:
     
-    def __init__(self) -> None:
+    def __init__(self, app) -> None:
+        from cfd.app import App
+        self.app: App = app
         
         self.drp_size = int(0.2 * config.width), int(0.05 * config.height)
         
@@ -27,28 +29,20 @@ class SettingsScreen:
 
         #   ==========[ FPS SETTING ]==========
         self.fps_info = Info(name="fps_info", title="Frame Per Second", pos=get_grid(3, 14), description="Number of screen draws per second, only affect visuals. High performance load")
-        self.fps_drp = Dropdown(name="fps_drp", rect=pg.Rect(get_grid(3, 15), self.drp_size), options=["30", "60", "120"], setting=settings.fps)
+        self.fps_drp = Dropdown(name="fps_drp", rect=pg.Rect(get_grid(3, 15), self.drp_size), options=["30", "45", "60", "120", "240"], setting=settings.fps)
         
         self.shw_fps_info = Info(name="shw_fps_info", title="Show FPS", pos=get_grid(3, 17))
         self.shw_fps_drp = Dropdown(name="shw_fps_drp", rect=pg.Rect(get_grid(3, 18), self.drp_size), options=["true", "false"], setting=settings.show_fps)
-        
-        #   ==========[ TPS SETTING ]==========
-        self.tps_info = Info(name="tps_info", title="Tick Per Second", pos=get_grid(3, 20), description="Number of updates per second, affect physics and mouse drags. High performance load")
-        self.tps_drp = Dropdown(name="tps_drp", rect=pg.Rect(get_grid(3, 21), self.drp_size), options=["120", "180", "240"], setting=settings.tps)
-        
-        self.shw_tps_info = Info(name="shw_tps_info", title="Show TPS", pos=get_grid(3, 23))
-        self.shw_tps_drp = Dropdown(name="shw_tps_drp", rect=pg.Rect(get_grid(3, 24), self.drp_size), options=["true", "false"], setting=settings.show_tps)
-        
-        self.dropdowns:list[Dropdown] = [self.theme_drp, self.fps_drp, self.shw_fps_drp, self.tps_drp, self.shw_tps_drp]
-        self.infos: list[Info] = [self.theme_info, self.fps_info, self.shw_fps_info, self.tps_info, self.shw_tps_info]
-        self.hovering: Widget = NULLWIDGET
+
+        self.dropdowns:list[Dropdown] = [self.theme_drp, self.fps_drp, self.shw_fps_drp]
+        self.infos: list[Info] = [self.theme_info, self.fps_info, self.shw_fps_info]
         
     
     #   ==========[ HANDLE EVENTS ]==========    
     def _handle_hover(self, mouse_pos:tuple) -> None:
         """checks if mouse is colliding with a dropdown menus"""
         
-        hovering = self.hovering
+        hovering = self.app.hovering
         hovered = NULLWIDGET
         
         for widget in chain(self.dropdowns, self.infos):
@@ -60,24 +54,24 @@ class SettingsScreen:
                     hovered = widget.hovering
                     break
 
-        self.hovering = hovered
-        if hovering != self.hovering:
-            logger.debug(f"Hovering {self.hovering.name}")
+        self.app.hovering = hovered
+        if hovering != self.app.hovering:
+            logger.debug(f"Hovering {self.app.hovering.name}")
 
     def _handle_click(self) -> None:
         """calls function if a dropdown menu is clicked"""
         
         #   if any open dropdown not being hovered close it
         for dropdown in self.dropdowns:
-            if dropdown.show and self.hovering.id != dropdown.id: dropdown.show = False
-        if not self.hovering.name: return
+            if dropdown.show and self.app.hovering.id != dropdown.id: dropdown.show = False
+        if not self.app.hovering.name: return
         
         event = None
         extra_data = {}
         clicked = False
         
-        if isinstance(self.hovering, Dropdown):
-            self.hovering.show = False if self.hovering.show else True
+        if isinstance(self.app.hovering, Dropdown):
+            self.app.hovering.show = False if self.app.hovering.show else True
             clicked = True
         
         #   check if hvr_id any menu buttons
@@ -106,7 +100,7 @@ class SettingsScreen:
             settings.save()
             config.update()
             
-        logger.debug(f"Clicked {self.hovering.name}")
+        logger.debug(f"Clicked {self.app.hovering.name}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
     def handle_events(self, event: pg.event.Event) -> None:
@@ -124,10 +118,10 @@ class SettingsScreen:
         
         self.title_surf = config.font["title"].render("Settings", True, config.main_clr)
     
-    def update(self, dt) -> None:
+    def update(self) -> None:
         
         for widget in chain(self.dropdowns, self.infos):
-            widget.update(self.hovering.id, -1)
+            widget.update(self.app.hovering.id, -1)
         self._update_text()
     
     
@@ -148,6 +142,6 @@ class SettingsScreen:
                 break                
 
         for info in self.infos:
-            if self.hovering.id == info.id:
+            if self.app.hovering.id == info.id:
                 info.draw_description(screen)
                 break

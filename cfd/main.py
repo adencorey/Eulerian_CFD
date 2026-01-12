@@ -3,7 +3,6 @@ from pygame._sdl2.video import Window
 
 import logging
 
-import cfd.utilities.logger as log
 from cfd.interface.config import config
 from cfd.app import App    
 

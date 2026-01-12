@@ -6,16 +6,16 @@ from cfd.interface.widgets import Widget
 
 class Info(Widget):
     
-    def __init__(self, name:str, title:str, pos:tuple, description:str=None, line_max:int=45) -> None:
-        super().__init__(name=name, rect=pg.Rect(pos, (0, 0)), font=config.font["head"])
+    def __init__(self, name:str, title:str, pos:tuple, description:str=None, line_max:int=45, font=config.font["body"], desc_font=config.font["sub"]) -> None:
+        super().__init__(name=name, rect=pg.Rect(pos, (0, 0)), font=font)
         
         self.title = title
         self.line_max = line_max
         self.description = self.break_description(description) if description else None
         
         self.pos = self.rect.topleft
-        self.desc_font = config.font["sub"]
-        self.radius = 0.43 * self.font.get_height()
+        self.desc_font = desc_font
+        self.radius = 0.4 * self.font.get_height()
         self.padding = self.border * np.array((10, 5))
         self.update()
         
@@ -55,12 +55,14 @@ class Info(Widget):
         #   get dimension of description box
         placeholder = self.description[0] if num_lines == 1 else self.line_max * "'/"
         w, h = self.desc_font.size(placeholder)
-        h = h * num_lines
+        h *= num_lines
         w, h = self.padding + np.array((w, h))
         
         #   determine anchor
-        if px + w > config.width: px -= w
-        if py + h > config.height: py -= h
+        px -= w
+        py -= h
+        if px - w < 0: px += w
+        if py - h < 0: py += h
         return px, py, w, h
         
     #   ==========[ UPDATE ]==========
@@ -70,9 +72,9 @@ class Info(Widget):
     def _update_text(self) -> None:
         
         self.title_surf = self.font.render(self.title, True, self.main_clr)
-        self.title_rect = self.title_surf.get_rect(topleft=self.pos)
+        self.title_rect = self.title_surf.get_rect(left=self.rect.left + 3 * self.radius, centery=self.rect.centery)
+        self.btn_center = (self.rect.left + 1.5 * self.radius, self.title_rect.centery)
         
-        self.btn_center = self.title_rect.right + 2 * self.radius, self.title_rect.centery
         if self.description:
             self.desc_rect = pg.Rect(self.get_desc_pos())
             self.symbol_surf = self.desc_font.render("?", True, self.main_clr)
@@ -107,5 +109,5 @@ class Info(Widget):
         
         if self.description:
             pg.draw.circle(screen, self.bg_clr, self.btn_center, self.radius)
-            pg.draw.circle(screen, self.main_clr, self.btn_center, self.radius, int(0.1 * self.desc_font.get_height()))
+            pg.draw.circle(screen, self.main_clr, self.btn_center, self.radius, int(0.07 * self.desc_font.get_height()))
         self._draw_text(screen)

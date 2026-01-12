@@ -157,7 +157,7 @@ def delete_project(name:str) -> True | False:
 def scan_projects() -> list[dict[str, str|dict[str, str|int]]]:
     """scans all saved projects"""
     
-    log.debug(f"Scanning projects root /{SAVES_PATH}...")
+    log.info(f"Scanning projects root /{SAVES_PATH}...")
     projects: list[dict] = []
     for entry in os.scandir(SAVES_PATH):
         if not entry.is_dir(): continue     #   skip if not a folder
@@ -165,6 +165,7 @@ def scan_projects() -> list[dict[str, str|dict[str, str|int]]]:
         
         data = {
             "name": entry.name,
+            "path": entry.path,
             "options": {},
             "metadata": {}
         }

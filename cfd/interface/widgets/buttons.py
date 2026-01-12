@@ -102,9 +102,10 @@ class SideBarButton(Widget):
 #   ==========[ PROJECT BUTTONS ]==========
 class ProjectButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, text:str, metadata:dict[str, str]):
+    def __init__(self, name:str, rect:pg.Rect, text:str, metadata:dict[str, str], path:str):
         super().__init__(name=name, rect=rect, text=text, font=config.font["head"])
         
+        self.path = path
         self.metadata = metadata
         self.sub_font = config.font["sub"]
         self.offset = int(0.1 * self.rect.height)

@@ -7,7 +7,8 @@ import sys
 
 from cfd.settings.manager import settings
 from cfd.interface.config import Events, Screens, Delay
-from cfd.interface.screens import ToolBar, LibraryScreen, SettingsScreen, CreateProjectScreen, EditProjectScreen, SimulationScreen
+from cfd.interface.widgets import Widget, NULLWIDGET, TextBox
+from cfd.interface.screens import *
 
 logger = logging.getLogger(__name__)
 
@@ -37,83 +38,81 @@ class App:
         self.running = True
         self.screen: pg.Surface = screen
         self.delay_queue = DelayQueue()
+        
+        self.hovering: Widget = NULLWIDGET
+        self.selected: TextBox = NULLWIDGET
+        self.highlighted: Widget = NULLWIDGET
+        self.keyboard_inp = ""
+        self.max_char = -1
 
+        self.dt = 1 / settings.tps
         self.clock: pg.time.Clock = pg.time.Clock()
-        self.current_screen = LibraryScreen()
+        self.current_screen = LibraryScreen(self)
         self.tool_bar = ToolBar()
         
-    def set_screen(self, screen_id, highlighting) -> None:
+    def set_screen(self, screen_id) -> None:
         
         if screen_id == Screens.LIBRARY.value:
-            self.current_screen = LibraryScreen()
+            self.current_screen = LibraryScreen(self)
         elif screen_id == Screens.CRT_PROJ.value:
-            self.current_screen = CreateProjectScreen()
+            self.current_screen = CreateProjectScreen(self)
         elif screen_id == Screens.EDIT_PROJ.value:
-            self.current_screen = EditProjectScreen(highlighting)
+            self.current_screen = EditProjectScreen(self)
         elif screen_id == Screens.SETTINGS.value:
-            self.current_screen = SettingsScreen()
+            self.current_screen = SettingsScreen(self)
         elif screen_id == Screens.SIMULATION.value:
-            self.current_screen = SimulationScreen()
+            self.current_screen = SimulationScreen(self)
+        elif screen_id == Screens.CONFIG_INIT_PARAM.value:
+            self.current_screen = ConfigInitParamScreen(self)
                 
     #   mainloop
     def run(self):
         
         logger.info("Running mainloop...")
-        keyboard_inp = ""
-        max_char = 0
-        dt = 1 / settings.tps
-        while self.running:
-            self.clock.tick(settings.tps)
-            tps = self.clock.get_fps()
-            interval = max(tps / settings.fps, 1)
-            
-            typing = False
-            try:
-                for event in pg.event.get():
-                    self.tool_bar.handle_events(event)
-                    self.current_screen.handle_events(event)
-                    
-                    if event.type == Events.CLEAR_INPUT: 
-                        keyboard_inp = ""
-                        
-                    if event.type == Events.KEYBOARD_INPUT: 
-                        typing = True
-                        max_char = event.max_char
-                    
-                    if event.type == pg.QUIT or event.type == Events.QUIT_PROGRAM:
-                        self.running = False
-                    
-                    if event.type == Events.SCREEN_SWITCH:
-                        try:
-                            highlighting = event.highlighting
-                        except:
-                            highlighting = None
-                        self.set_screen(event.screen_id, highlighting)
-                    
-                    if typing:                
-                        if event.type == pg.KEYDOWN:
-                            if event.key == pg.K_BACKSPACE:
-                                keyboard_inp = keyboard_inp[:-1]
-                        if event.type == pg.TEXTINPUT:
-                            if len(keyboard_inp) < max_char:
-                                keyboard_inp += event.text
-                        self.current_screen.handle_type(keyboard_inp)
 
-                    if event.type == Events.DELAY_FUNCTION:
-                        self.delay_queue.append(event.function)
-            except Exception:
-                traceback.print_exc()
-                raise
-                    
-            self.current_screen.update(dt)
-            self.delay_queue.update()
+        while self.running:
+            self.clock.tick(settings.fps)
+            fps = self.clock.get_fps()
             
-            if pg.time.get_ticks() % int(interval) == 0:
-                self.tool_bar.update(tps / interval, tps)
-                self.screen.fill(settings.theme.dark_bg)
-                self.tool_bar.draw(self.screen)
-                self.current_screen.draw(self.screen)
-                pg.display.flip()
+            if not self.selected.id: self.keyboard_inp = ""
+            typing = False
+            for event in pg.event.get():
+                self.tool_bar.handle_events(event)
+                self.current_screen.handle_events(event)
+                
+                if event.type == Events.CLEAR_INPUT: 
+                    self.keyboard_inp = ""
+                    
+                if event.type == Events.KEYBOARD_INPUT: 
+                    typing = True
+                    self.max_char = event.max_char
+                
+                if event.type == pg.QUIT or event.type == Events.QUIT_PROGRAM:
+                    self.running = False
+                
+                if event.type == Events.SCREEN_SWITCH:                        
+                    self.set_screen(event.screen_id)
+                
+                if typing:                
+                    if event.type == pg.KEYDOWN:
+                        if event.key == pg.K_BACKSPACE:
+                            self.keyboard_inp = self.keyboard_inp[:-1]
+                    if event.type == pg.TEXTINPUT:
+                        if len(self.keyboard_inp) < self.max_char:
+                            self.keyboard_inp += event.text
+                    self.current_screen.handle_type(self.keyboard_inp)
+
+                if event.type == Events.DELAY_FUNCTION:
+                    self.delay_queue.append(event.function)
+                    
+            self.current_screen.update()
+            self.delay_queue.update()
+
+            self.tool_bar.update(fps)
+            self.screen.fill(settings.theme.dark_bg)
+            self.tool_bar.draw(self.screen)
+            self.current_screen.draw(self.screen)
+            pg.display.flip()
         
         logger.info("Shutting down program...")
         pg.quit()

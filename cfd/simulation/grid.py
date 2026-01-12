@@ -11,7 +11,7 @@ class Grid:
     def __init__(self, dt:float) -> None:
         
         self.dt = dt
-        self.num_cells = 128 + 2
+        self.num_cells = 256
         self.scale = (self.num_cells - 2) / 32
         self.env_length = 10                    #   10 meters
         self.cell_size = self.env_length / (self.num_cells - 2)
@@ -33,7 +33,7 @@ class Grid:
         self.w = np.ones(COLLOCATED_GRID, dtype=np.uint8)
         self.w[1:-1, 1] = 0
         self.w[1:-1, -2] = 0
-        #self.w[1, 2:-2] = 0
+        self.w[1, 2:-2] = 0
         self.w[-2, 2:-2] = 0
         
         #   velocity field
@@ -61,6 +61,10 @@ class Grid:
             idx = None if np.any((idx < 0) | (idx >= self.num_cells)) else tuple(idx.tolist())
         return idx
     
+    def shrink_field(self, arr: np.ndarray) -> np.ndarray:
+        side = arr.shape[0]
+        return arr if side <= 66 or side % 2 == 1 else self.shrink_field(0.25 * arr.reshape(side // 2, 2, side // 2, 2).sum(axis=1).sum(axis=2))
+    
     #   ==========[ UPDATE ]==========
     def set_boundary_values(self) -> None:
         free_slip_wall_check(self.num_cells, self.w, self.u, self.v, self.s)
@@ -82,6 +86,12 @@ class Grid:
     def advect_smoke(self) -> None:
         semi_lagrangian_advect_smoke(self.dt, self.cell_size, self.num_cells, self.w, self.s, self.ns, self.u, self.v)
         self.s[:, :] = self.ns
+        
+    def diffuse_smoke(self, iter, sor_weight) -> None:
+        smoke_diffusion(self.dt, self.num_cells, self.w, self.s, iter, sor_weight)
+    
+    def diffuse_velocities(self, iter, sor_weight) -> None:
+        velocity_diffusion(self.dt, self.num_cells, self.w, self.u, self.v, iter, sor_weight)
         
     #   ==========[ DRAW ]==========
     def get_walls_field_img(self, img:np.ndarray) -> None:
@@ -139,14 +149,18 @@ class Grid:
     """
         
     def get_velocity_field_img(self, img:np.ndarray) -> None:
-
+        
         u = 0.5 * (self.u[:-1, :] + self.u[1:, :])
         v = 0.5 * (self.v[:, :-1] + self.v[:, 1:])
-        vel = np.stack((-v, u))  #  negate v for screen coordinates
+
+        nu, nv = self.shrink_field(u), self.shrink_field(v)
+        factor = u.shape[0] / nu.shape[0]
         
-        mag = np.zeros_like(u)
+        vel = np.stack((-nv, nu))  #  negate v for screen coordinates
+        
+        mag = np.zeros_like(nu)
         mag[1:-1, 1:-1] = np.sqrt(np.sum(vel[:, 1:-1, 1:-1] ** 2, axis=0)) / self.cell_size * self.cell_px
-        mag_clipped = np.clip(mag, 0, self.env_length / self.cell_size * 2 * self.cell_px)
+        mag_clipped = np.clip(mag, 0, self.env_length / self.cell_size * 2 * self.cell_px * factor)
         
         is_mag = mag > 0
         d = np.zeros_like(vel)
@@ -154,8 +168,9 @@ class Grid:
         
         #   draw velocity lines
         steps = np.linspace(0, 1, 25)
+        position = np.array((self.shrink_field(self.pos[0]), self.shrink_field(self.pos[1])))
         for step in steps:
-            pos = (self.pos[:, is_mag] + mag_clipped[is_mag] * d[:, is_mag] * step).astype(int)
+            pos = (position[:, is_mag] + mag_clipped[is_mag] * d[:, is_mag] * step).astype(int)
             valid = (pos[0] > 0) & (pos[0] < self.grid_size[0]) & (pos[1] > 0) & (pos[1] < self.grid_size[1])
             colour = (128, 128, 128) if step < 0.6 else (0, 128, 128)
             img[pos[1][valid], pos[0][valid]] = colour

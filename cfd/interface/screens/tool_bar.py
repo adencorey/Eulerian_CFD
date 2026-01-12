@@ -24,9 +24,8 @@ class ToolBar:
         self.quit_btn = WindowButton(name="quit_btn", rect=pg.Rect(config.width - self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="x")
         self.min_btn = WindowButton(name="min_btn", rect=pg.Rect(config.width - 2 * self.win_btn_width, 0, self.win_btn_width, self.win_btn_height), symbol="_")
         
-        #   ==========[ FPS/TPS LABEL ]==========
+        #   ==========[ FPS LABEL ]==========
         self.fps_lbl_pos = int(0.01 * config.width + self.side_btn_len), int(0.05 * config.height)
-        self.tps_lbl_pos = int(0.1 * config.width + self.side_btn_len), int(0.05 * config.height)
         
         #   ==========[ SIDEBAR BUTTONS ]==========
         self.library_btn = SideBarButton(name="lib_scn_btn", rect=pg.Rect(0, self.win_btn_height + self.side_btn_len, self.side_btn_len, self.side_btn_len), image="library.png")
@@ -38,9 +37,9 @@ class ToolBar:
             self.library_btn,
             self.settings_btn
         ]
-        
-        self.hovering:Widget = NULLWIDGET
-        self.highlight:Widget = self.library_btn
+
+        self.hovering: Widget = NULLWIDGET
+        self.highlighted: Widget = self.library_btn
 
         
     #   ==========[ EVENT HANDLING ]==========
@@ -71,7 +70,7 @@ class ToolBar:
         
         match self.hovering.id:
             
-            case self.highlight.id:
+            case self.highlighted.id:
                 return
             
             case self.quit_btn.id:
@@ -83,12 +82,13 @@ class ToolBar:
             case self.library_btn.id:
                 event = Events.SCREEN_SWITCH
                 extra_data["screen_id"] = Screens.LIBRARY.value
-                self.highlight = self.library_btn
+                self.highlighted = self.library_btn
                 
             case self.settings_btn.id:
                 event = Events.SCREEN_SWITCH
                 extra_data["screen_id"] = Screens.SETTINGS.value
-                self.highlight = self.settings_btn
+                self.highlighted = self.settings_btn
+                
             case _:
                 return
             
@@ -106,18 +106,17 @@ class ToolBar:
     
     
     #   ==========[ UPDATE ]==========
-    def _update_text(self, fps, tps) -> None:
+    def _update_text(self, fps) -> None:
         """update colour / value of texts"""
         
         self.title_surf = config.font["sub"].render("Eulerian CFD", True, config.main_clr)
         if settings.show_fps: self.fps_lbl_surf = config.font["sub"].render(f"FPS: {fps:.2f}", True, config.main_clr)
-        if settings.show_tps: self.tps_lbl_surf = config.font["sub"].render(f"TPS: {tps:.2f}", True, config.main_clr)
     
-    def update(self, fps:float, tps:float) -> None:
+    def update(self, fps:float) -> None:
         
-        self._update_text(fps, tps)
+        self._update_text(fps)
         for button in self.buttons:
-            button.update(self.hovering.id, self.highlight.id)
+            button.update(self.hovering.id, self.highlighted.id)
          
     
     #   ==========[ DRAW ]==========
@@ -130,9 +129,8 @@ class ToolBar:
         #   draw title
         screen.blit(self.title_surf, self.title_rect)
         
-        #   draw fps/tps
+        #   draw fps
         if settings.show_fps: screen.blit(self.fps_lbl_surf, self.fps_lbl_pos)
-        if settings.show_tps: screen.blit(self.tps_lbl_surf, self.tps_lbl_pos)
         
         #   draw buttons
         for button in self.buttons:
