@@ -5,8 +5,8 @@ from itertools import chain
 
 from cfd.interface.config import Events, Screens, config
 from cfd.interface.widgets import Widget, NULLWIDGET, Info, RectButton, TextBox, Slidebar
-from cfd.utilities.files_manager import rename_project, edit_project
-from cfd.utilities.screen_helper import get_grid, TITLE_POS
+from cfd.helpers.files import rename_project, edit_project
+from cfd.helpers.screen import get_grid, TITLE_POS
 
 logger = logging.getLogger(__name__)
 

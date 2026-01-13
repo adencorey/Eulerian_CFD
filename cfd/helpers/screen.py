@@ -9,3 +9,5 @@ def get_grid(row, col) -> tuple[int, int]:
     return tuple(np.round((row * config.width / 30 + x_off, col * config.height / 30 + y_off)).tolist())
 
 TITLE_POS = get_grid(1, 3)
+LARGE_WIDGET = int(0.2 * config.width), int(0.05 * config.height)
+SB_DIM = int(0.15 * config.width), int(0.01 * config.height)

@@ -3,7 +3,7 @@ import numpy as np
 
 from typing import Generator
 
-from cfd.utilities.assets import load_image, recolour_image
+from cfd.helpers.assets import load_image, recolour_image
 from cfd.interface.config import registry, config, Delay
 from .widget import Widget
         

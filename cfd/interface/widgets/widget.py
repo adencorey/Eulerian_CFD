@@ -14,7 +14,7 @@ class Widget:
         self.font = font if font else config.font["body"]
         self.border = int(0.07 * self.font.get_height())
         self.main_clr, self.bg_clr = colours if colours else config.main_clr, config.bg_clr
-            
+          
         
     #   ==========[ UTILS ]==========
     def collide(self, mouse_pos) -> True | False:

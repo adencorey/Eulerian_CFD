@@ -13,6 +13,7 @@ class CheckBox(Widget):
         self.padding = 1.5 * self.radius
         self.center = (self.rect.left + self.padding, self.rect.centery)
         self.checked = checked
+        self._update_text()
         
     #   ==========[ UTILITIES ]==========
     def collide(self, mouse_pos) -> True | False:

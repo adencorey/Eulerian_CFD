@@ -2,7 +2,7 @@ import pstats
 import cProfile
 
 from cfd.main import main
-import cfd.utilities.logger as log
+import cfd.helpers.logger as log
 
 if __name__ == "__main__":
     

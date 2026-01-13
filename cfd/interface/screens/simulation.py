@@ -7,7 +7,7 @@ from itertools import chain
 from cfd.settings.manager import settings
 from cfd.interface.config import config, Events, Screens
 from cfd.interface.widgets import Widget, NULLWIDGET, Info, Dropdown, Slidebar, CheckBox, RectButton
-from cfd.utilities.screen_helper import TITLE_POS, get_grid
+from cfd.helpers.screen import TITLE_POS, get_grid
 from cfd.simulation.grid import Grid
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class SimulationScreen:
         
         
         self.brush_size_info = Info(name="brush_size_info", title="Brush Size", pos=get_grid(2, 9), description="Paint brush size.")
-        self.brush_size_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(9, 9), self.sb_dim), min_val=0.5, max_val=5, step=0.1, default=3)
+        self.brush_size_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(9, 9), self.sb_dim), min_val=1, max_val=5, step=0.1, default=3)
         
         self.shw_debug_chk = CheckBox(name="shw-debug-chk", pos=get_grid(2, 10.5), text="Show debug screen")
         
@@ -130,11 +130,12 @@ class SimulationScreen:
     
     def _handle_drag(self, mouse_pos, mouse_rel, left, mid, right) -> None:
         
-        for slidebar in self.sbs:
-            if slidebar.dragging:
-                slidebar.x_pos = mouse_pos[0]
-                break
-        
+        if left:
+            for slidebar in self.sbs:
+                if slidebar.dragging:
+                    slidebar.x_pos = mouse_pos[0]
+                    break
+                    
         #   external velocity / smoke density by user
         if self.hover_idx:
             i, j = self.hover_idx

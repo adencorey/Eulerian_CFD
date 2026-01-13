@@ -7,7 +7,7 @@ from itertools import chain
 from cfd.settings.manager import settings
 from cfd.interface.config import config, Events, Screens
 from cfd.interface.widgets import Widget, NULLWIDGET, Info, Dropdown, Slidebar, CheckBox, RectButton
-from cfd.utilities.screen_helper import TITLE_POS, get_grid
+from cfd.helpers.screen import TITLE_POS, get_grid
 from cfd.simulation.grid import Grid
 
 logger = logging.getLogger(__name__)

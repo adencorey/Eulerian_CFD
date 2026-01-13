@@ -8,14 +8,14 @@ log = logging.getLogger(__name__)
 
 class Settings:
 
-    def __init__(self, theme_name="dark", fps=60, show_fps=False, tps=120, show_tps=False) -> None:
+    def __init__(self, theme_name="dark", fps=60, show_fps=False, iterator=50, sor_weight=1.6) -> None:
         
         os.makedirs(os.path.dirname(self.path), exist_ok=True)  #   make the directory /local/settings.json
         self.theme_name = theme_name
         self.fps = fps
         self.show_fps = show_fps
-        self.tps = tps
-        self.show_tps = show_tps
+        self.iterator = iterator
+        self.sor_weight = sor_weight
         self.load()
     
     @property
@@ -64,22 +64,22 @@ DEFAULT = Settings(
     theme_name="dark",
     fps=60,
     show_fps=False,
-    tps=120,
-    show_tps=False
+    iterator=50,
+    sor_weight=1.6
 )
 
 PERFORMANCE = Settings(
     theme_name="dark",
     fps=30,
     show_fps=True,
-    tps=120,
-    show_tps=True
+    iterator=30,
+    sor_weight=1.8
 )
 
 ULTRA = Settings(
     theme_name="dark",
     fps=120,
     show_fps=False,
-    tps=240,
-    show_tps=False
+    iterator=100,
+    sor_weight=1.4
 )

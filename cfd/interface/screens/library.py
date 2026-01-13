@@ -5,8 +5,8 @@ from itertools import chain
 
 from cfd.interface.config import Events, Screens, Delay, config
 from cfd.interface.widgets import NULLWIDGET, Widget, Info, RectButton, ProjectButton
-from cfd.utilities.files_manager import scan_projects, delete_project
-from cfd.utilities.screen_helper import get_grid, TITLE_POS
+from cfd.helpers.files import scan_projects, delete_project
+from cfd.helpers.screen import get_grid, TITLE_POS
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,7 @@ class LibraryScreen:
                     event = Events.SCREEN_SWITCH
                     extra_data["screen_id"] = Screens.SIMULATION.value
                     extra_data["project_path"] = project.path
+                    self.app.highlighted = NULLWIDGET
                     
                 clicked = True
                 break

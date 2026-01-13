@@ -5,8 +5,8 @@ from itertools import chain
 
 from cfd.settings.manager import settings
 from cfd.interface.config import config
-from cfd.interface.widgets import Widget, Info, NULLWIDGET, Dropdown
-from cfd.utilities.screen_helper import get_grid, TITLE_POS
+from cfd.interface.widgets import Widget, Info, NULLWIDGET, Dropdown, CheckBox, Slidebar
+from cfd.helpers.screen import get_grid, TITLE_POS, LARGE_WIDGET, SB_DIM
 
 logger = logging.getLogger(__name__)
 
@@ -17,25 +17,36 @@ class SettingsScreen:
         from cfd.app import App
         self.app: App = app
         
-        self.drp_size = int(0.2 * config.width), int(0.05 * config.height)
-        
         #   ==========[ TITLE ]==========
         self.title_surf = config.font["title"].render("Settings", True, config.main_clr)
         self.title_pos = TITLE_POS
         
         #   ==========[ THEME SETTING ]==========
         self.theme_info = Info(name="theme_info", title="Theme", pos=get_grid(3, 7), description="Appearance of the program.")
-        self.theme_drp = Dropdown(name="theme_drp", rect=pg.Rect(get_grid(3, 8), self.drp_size), options=["light", "dark"], setting=settings.theme_name)
+        self.theme_drp = Dropdown(name="theme_drp", rect=pg.Rect(get_grid(3, 8), LARGE_WIDGET), options=["light", "dark"], setting=settings.theme_name)
 
         #   ==========[ FPS SETTING ]==========
-        self.fps_info = Info(name="fps_info", title="Frame Per Second", pos=get_grid(3, 14), description="Number of screen draws per second, only affect visuals. High performance load")
-        self.fps_drp = Dropdown(name="fps_drp", rect=pg.Rect(get_grid(3, 15), self.drp_size), options=["30", "45", "60", "120", "240"], setting=settings.fps)
+        self.fps_info = Info(name="fps_info", title="Frames Per Second", pos=get_grid(3, 14), description="Refresh rate of program. Higher refresh rate increases the accuracy of the simulation. High performance load")
+        self.fps_drp = Dropdown(name="fps_drp", rect=pg.Rect(get_grid(3, 15), LARGE_WIDGET), options=["30", "45", "60", "120", "240"], setting=settings.fps)
+        self.shw_fps_chk = CheckBox(name="shw_fps_chk", pos=get_grid(3, 18), text="Show FPS", checked=settings.show_fps)
         
-        self.shw_fps_info = Info(name="shw_fps_info", title="Show FPS", pos=get_grid(3, 17))
-        self.shw_fps_drp = Dropdown(name="shw_fps_drp", rect=pg.Rect(get_grid(3, 18), self.drp_size), options=["true", "false"], setting=settings.show_fps)
+        #   ==========[ GAUSS-SEIDEL ITERATION ]
+        self.iter_info = Info(name="iter_info", title="Gauss-Seidel Iteration", pos=get_grid(16, 7), description="Number of times pressure solver iterates per frame, more iterations yield better the approximation. High performance load.")
+        self.iter_sb = Slidebar(name="iter_sb", rect=pg.Rect(get_grid(21, 9), SB_DIM), min_val=10, max_val=100, step=1, default=settings.iterator)
 
-        self.dropdowns:list[Dropdown] = [self.theme_drp, self.fps_drp, self.shw_fps_drp]
-        self.infos: list[Info] = [self.theme_info, self.fps_info, self.shw_fps_info]
+        #   ==========[ SUCCESSIVE OVER-RELAXATION WEIGHT ]==========
+        self.sor_weight_info = Info(name="sor_weight_info", title="Successive Over-relaxation Weight", pos=get_grid(16, 12), description="Artificial multiplier applied on pressure values after every calculation. Pressure values with same degree of accuracy can be calculated with less Gauss-Seidel iterations, but incorrect pressure values may be calculated. Any value higher than 1.8 is not recommended.")
+        self.sor_weight_sb = Slidebar(name="sor_weight_sb", rect=pg.Rect(get_grid(21, 14), SB_DIM), min_val=1, max_val=1.9, step=0.05, default=settings.sor_weight)
+
+
+        self.dropdowns:list[Dropdown] = [self.theme_drp, self.fps_drp]
+        self.infos: list[Info] = [self.theme_info, self.fps_info, self.iter_info, self.sor_weight_info]
+        self.checkboxes: list[CheckBox] = [self.shw_fps_chk]
+        self.slidebars: list[Slidebar] = [self.iter_sb, self.sor_weight_sb]
+
+    
+    def _widgets(self) -> chain[Widget]:
+        return chain(self.dropdowns, self.infos, self.checkboxes, self.slidebars)
         
     
     #   ==========[ HANDLE EVENTS ]==========    
@@ -45,14 +56,14 @@ class SettingsScreen:
         hovering = self.app.hovering
         hovered = NULLWIDGET
         
-        for widget in chain(self.dropdowns, self.infos):
-            if widget.collide(mouse_pos):
-                hovered = widget
-                break
+        for widget in self._widgets():
             if isinstance(widget, Dropdown):
                 if widget.collide_children(mouse_pos):
                     hovered = widget.hovering
                     break
+            if widget.collide(mouse_pos):
+                hovered = widget
+                break
 
         self.app.hovering = hovered
         if hovering != self.app.hovering:
@@ -60,24 +71,25 @@ class SettingsScreen:
 
     def _handle_click(self) -> None:
         """calls function if a dropdown menu is clicked"""
-        
+            
         #   if any open dropdown not being hovered close it
-        for dropdown in self.dropdowns:
-            if dropdown.show and self.app.hovering.id != dropdown.id: dropdown.show = False
-        if not self.app.hovering.name: return
+        for drp in self.dropdowns:
+            if self.app.hovering.id != drp.id: drp.show = False
+        if not self.app.hovering.name: return      #   skip if NULLWIDGET
         
         event = None
         extra_data = {}
-        clicked = False
         
         if isinstance(self.app.hovering, Dropdown):
-            self.app.hovering.show = False if self.app.hovering.show else True
-            clicked = True
-        
-        #   check if hvr_id any menu buttons
-        if not clicked:
-            
-            if self.theme_drp.hovering.name:
+            self.app.hovering.show = not self.app.hovering.show
+        elif isinstance(self.app.hovering, Slidebar):
+            self.app.hovering.dragging = True
+        else:
+            if self.app.hovering.id == self.shw_fps_chk.id:
+                self.shw_fps_chk.checked = not self.shw_fps_chk.checked
+                settings.show_fps = self.shw_fps_chk.checked
+                
+            elif self.theme_drp.hovering.name:
                 settings.theme_name = self.theme_drp.hovering.text.lower()
                 self.theme_drp.clicked(settings.theme_name)
                 
@@ -85,31 +97,40 @@ class SettingsScreen:
                 settings.fps = int(self.fps_drp.hovering.text)
                 self.fps_drp.clicked(settings.fps)
             
-            elif self.shw_fps_drp.hovering.name:
-                settings.show_fps = self.shw_fps_drp.hovering.text.lower() == "true"
-                self.shw_fps_drp.clicked(settings.show_fps)
-                
-            elif self.tps_drp.hovering.name:
-                settings.tps = int(self.tps_drp.hovering.text)
-                self.tps_drp.clicked(settings.tps)
-            
-            elif self.shw_tps_drp.hovering.name:
-                settings.show_tps = self.shw_tps_drp.hovering.text.lower() == "true"
-                self.shw_tps_drp.clicked(settings.show_tps)
-            
             settings.save()
             config.update()
             
         logger.debug(f"Clicked {self.app.hovering.name}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         
+    def _handle_drag(self, mouse_pos) -> None:
+        for sb in self.slidebars:
+            if sb.dragging:
+                sb.x_pos = mouse_pos[0]
+                break
+        
     def handle_events(self, event: pg.event.Event) -> None:
 
-        mouse_pos:tuple = pg.mouse.get_pos()
+        mouse = pg.mouse
+        mouse_pos = mouse.get_pos()
+        left = mouse.get_pressed()[0]
         if event.type == pg.MOUSEMOTION:
             self._handle_hover(mouse_pos)
-        if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
+            if left: self._handle_drag(mouse_pos)
+        if event.type == pg.MOUSEBUTTONDOWN and left:
             self._handle_click()
+        if event.type == pg.MOUSEBUTTONUP and not left:
+            for sb in self.slidebars:
+                if sb.dragging:
+                    sb.dragging = False
+
+                    match sb.id:
+                        case self.iter_sb.id:
+                            settings.iterator = sb.value
+                        case self.sor_weight_sb.id:
+                            settings.sor_weight = sb.value
+                    settings.save()
+                    break
             
             
     #   ==========[ UPDATE ]==========
@@ -120,7 +141,7 @@ class SettingsScreen:
     
     def update(self) -> None:
         
-        for widget in chain(self.dropdowns, self.infos):
+        for widget in self._widgets():
             widget.update(self.app.hovering.id, -1)
         self._update_text()
     
@@ -130,7 +151,7 @@ class SettingsScreen:
         
         screen.blit(self.title_surf, self.title_pos)    #   title
         
-        for widget in chain(self.infos, self.dropdowns):
+        for widget in self._widgets():
             if isinstance(widget, Dropdown):
                 widget.draw_parent(screen)
                 continue

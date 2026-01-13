@@ -11,7 +11,7 @@ class Grid:
     def __init__(self, dt:float) -> None:
         
         self.dt = dt
-        self.num_cells = 256
+        self.num_cells = 64
         self.scale = (self.num_cells - 2) / 32
         self.env_length = 10                    #   10 meters
         self.cell_size = self.env_length / (self.num_cells - 2)
