@@ -3,9 +3,10 @@ import pygame as pg
 import logging
 from itertools import chain
 
+from cfd.helpers.time import get_now
 from cfd.interface.config import Events, Screens, Delay, config
 from cfd.interface.widgets import NULLWIDGET, Widget, Info, RectButton, ProjectButton
-from cfd.helpers.files import scan_projects, delete_project
+from cfd.helpers.files import scan_projects, delete_project, edit_project
 from cfd.helpers.screen import get_grid, TITLE_POS
 
 logger = logging.getLogger(__name__)
@@ -26,15 +27,14 @@ class LibraryScreen:
         self.edit_btn = RectButton(name="edit_proj_scn_btn", rect=pg.Rect(get_grid(3, 15), self.btn_dim), text="Edit Project", disabled=True)
         self.del_btn = RectButton(name="del_proj_btn", rect=pg.Rect(get_grid(3, 20), self.btn_dim), text="Delete Project", disabled=True)
         self.alter_buttons: list[RectButton] = [self.edit_btn, self.del_btn]
-        
+
         #   ==========[ PROJECT ENTRIES ]==========        
         project_entries = scan_projects()
         self.projects: list[ProjectButton] = []
         col = 7
         for project in project_entries:
-            name, path, _, metadata = project.values()
-            widget_name = f"{name.replace(' ', '-')}_proj_btn"
-            self.projects.append(ProjectButton(name=widget_name, rect=pg.Rect(get_grid(12, col), self.proj_dim), text=name, metadata=metadata, path=path))
+            widget_name = f"{project.name.replace(' ', '-')}_proj_btn"
+            self.projects.append(ProjectButton(name=widget_name, rect=pg.Rect(get_grid(12, col), self.proj_dim), project=project))
             col += 4
         
         #   ==========[ PROJECT COUNT LABEL ]==========
@@ -68,28 +68,24 @@ class LibraryScreen:
             return
         event = None
         extra_data = {}
-        clicked = False
         
-        for project in self.projects:
-            if self.app.hovering.id == project.id:
-                
-                if not project.double_click:
-                    self.app.highlighted = project
-                    event = Events.DELAY_FUNCTION
-                    extra_data["function"] = project.toggle_double_click()
-                    for button in self.alter_buttons:
-                        button.disabled = False
+        if isinstance(self.app.hovering, ProjectButton):
+            if not self.app.hovering.double_click:
+                self.app.highlighted = self.app.hovering
+                self.app.project = self.app.hovering.project
+                event = Events.DELAY_FUNCTION
+                extra_data["function"] = self.app.hovering.toggle_double_click()
+                for button in self.alter_buttons:
+                    button.disabled = False
                                     
-                else:
-                    event = Events.SCREEN_SWITCH
-                    extra_data["screen_id"] = Screens.SIMULATION.value
-                    extra_data["project_path"] = project.path
-                    self.app.highlighted = NULLWIDGET
-                    
-                clicked = True
-                break
-        
-        if not clicked:
+            else:
+                event = Events.SCREEN_SWITCH
+                extra_data["screen_id"] = Screens.SIMULATION.value
+                self.app.highlighted = NULLWIDGET
+                self.app.project.metadata["last_opened"] = get_now(False)
+                edit_project(self.app.project.name, metadata=self.app.project.metadata)
+
+        else:
             match self.app.hovering.id:
                 
                 case self.crt_btn.id:
@@ -110,7 +106,7 @@ class LibraryScreen:
                         else:
                             if self.app.highlighted.id:
                                 delete_project(self.app.highlighted.text)
-                                self.__init__()
+                                self.__init__(self.app)
                     
                 case _:
                     return

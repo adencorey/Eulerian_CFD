@@ -4,6 +4,7 @@ import numpy as np
 from typing import Generator
 
 from cfd.helpers.assets import load_image, recolour_image
+from cfd.helpers.files import Project
 from cfd.interface.config import registry, config, Delay
 from .widget import Widget
         
@@ -102,11 +103,10 @@ class SideBarButton(Widget):
 #   ==========[ PROJECT BUTTONS ]==========
 class ProjectButton(Widget):
     
-    def __init__(self, name:str, rect:pg.Rect, text:str, metadata:dict[str, str], path:str):
-        super().__init__(name=name, rect=rect, text=text, font=config.font["head"])
+    def __init__(self, name:str, rect:pg.Rect, project: Project):
+        super().__init__(name=name, rect=rect, text=project.name, font=config.font["head"])
         
-        self.path = path
-        self.metadata = metadata
+        self.project = project
         self.sub_font = config.font["sub"]
         self.offset = int(0.1 * self.rect.height)
         self.double_click = False
@@ -124,7 +124,7 @@ class ProjectButton(Widget):
         self.text_rect = self.text_surf.get_rect(topleft=self.rect.topleft + self.offset * np.array((1, 1)))
         self.sub_texts: list = []
         i = 0
-        for key, val in self.metadata.items():
+        for key, val in self.project.metadata.items():
             text = f"{key.replace('_', ' ')}: {val}"
             surf = self.sub_font.render(text, True, self.main_clr)
             rect = surf.get_rect(bottomleft=self.rect.bottomleft + self.offset * np.array((1 + i, -1)))

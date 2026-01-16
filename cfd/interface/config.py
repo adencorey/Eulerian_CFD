@@ -68,7 +68,7 @@ class Config:
         self.font = {
             "title" : pg.font.SysFont(DEJAVU, int(0.04 * height)),
             "head"  : pg.font.SysFont(DEJAVU, int(0.03 * height)),
-            "body"  : pg.font.SysFont(TIMES, int(0.03 * height)),
+            "body"  : pg.font.SysFont(TIMES, int(0.028 * height)),
             "par"   : pg.font.SysFont(TIMES, int(0.024 * height)),
             "sub"   : pg.font.SysFont(ARIAL, int(0.024 * height)),
             "sml"   : pg.font.SysFont(ARIAL, int(0.0175 * height))

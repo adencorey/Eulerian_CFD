@@ -19,9 +19,8 @@ class SimulationScreen:
         self.app: App = app
         
         self.title_surf = config.font["title"].render("Simulation", True, config.main_clr)
-        self.dt = 1 / settings.fps
-        self.grid = Grid(self.dt)
-        
+        self.grid = Grid(app.project)
+                
         self.drp_dim = (int(0.1 * config.width), int(0.04 * config.height))
         self.sb_dim = int(0.15 * config.width), int(0.008 * config.height)
         self.btn_dim = (int(0.1 * config.width), int(0.04 * config.height))
@@ -33,7 +32,7 @@ class SimulationScreen:
         
         
         self.brush_size_info = Info(name="brush_size_info", title="Brush Size", pos=get_grid(2, 9), description="Paint brush size.")
-        self.brush_size_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(9, 9), self.sb_dim), min_val=1, max_val=5, step=0.1, default=3)
+        self.brush_size_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(9, 9), self.sb_dim), min_val=1, max_val=int(0.25 * self.grid.num_cells), step=1, default=int(0.1 * self.grid.num_cells))
         
         self.shw_debug_chk = CheckBox(name="shw-debug-chk", pos=get_grid(2, 10.5), text="Show debug screen")
         
@@ -44,7 +43,7 @@ class SimulationScreen:
         self.total_s = Info(name="total_s_info", title="Total Smoke Density: 0", pos=get_grid(2, 12.75), description="Sum of smoke density of all cells.", font=config.font["sub"], desc_font=config.font["sml"])
         
         self.cell_type = Info(name="cell_type_info", title="Cell Type: -", pos=get_grid(2, 14), description="Cell type of hovering cell, fluid cell - 1; wall cell - 0.", font=config.font["sub"], desc_font=config.font["sml"])
-        self.cell_idx = Info(name="cell_idx_info", title="Cell Index: (-, -)", pos=get_grid(2, 14.75), description="Grid index of hovering cell in (col, row), starts with top-left corner with index (0, 0).", font=config.font["sub"], desc_font=config.font["sml"])
+        self.cell_idx = Info(name="cell_idx_info", title="Cell Index: (-, -)", pos=get_grid(2, 14.75), description="Grid index of hovering cell in (row, column), starts with top-left corner with index (0, 0).", font=config.font["sub"], desc_font=config.font["sml"])
         self.cell_vel = Info(name="cell_vel_info", title="Velocity: (-, -)", pos=get_grid(2, 15.5), description="Velocity vector of hovering cell in meter per second.", font=config.font["sub"], desc_font=config.font["sml"])
         self.cell_div = Info(name="cell_div_info", title="Divergence: -", pos=get_grid(2, 16.25), description="Divergence of hovering cell, diverging - positive; converging - negative.", font=config.font["sub"], desc_font=config.font["sml"])
         self.cell_s = Info(name="cell_s_info", title="Smoke Density: -", pos=get_grid(2, 17), description="Smoke density of hovering cell from 0 to 1.", font=config.font["sub"], desc_font=config.font["sml"])
@@ -66,7 +65,7 @@ class SimulationScreen:
         self.hover_idx: tuple[int, int] = None
         
         self.base_img = np.zeros([self.grid.num_cells, self.grid.num_cells, 3], dtype=np.uint8)
-        self.vel_img = np.zeros((self.grid.grid_size[1], self.grid.grid_size[0], 3), dtype=np.uint8)
+        self.vel_img = np.zeros((self.grid.dim[1], self.grid.dim[0], 3), dtype=np.uint8)
         self.img_surf = pg.surfarray.make_surface(self.vel_img)
         self.wind_tunnel = False
         
@@ -139,7 +138,7 @@ class SimulationScreen:
         #   external velocity / smoke density by user
         if self.hover_idx:
             i, j = self.hover_idx
-            radius = int(self.grid.scale * self.brush_size_sb.value)
+            radius = int(self.brush_size_sb.value)
             
             i_start = max(i - radius, 1)
             j_start = max(j - radius, 1)
@@ -150,12 +149,12 @@ class SimulationScreen:
             x_span = np.arange(i_start, i_end)
             y_span = np.arange(j_start, j_end)
             x, y = np.meshgrid(x_span, y_span, indexing='ij')
-            weight: np.ndarray = 1 - np.hypot(x - i, y - j) / radius
-            weight = np.clip(weight, 0, 1)
+            weight = 1 - np.hypot(x - i, y - j) / radius
+            np.clip(weight, 0, 1, out=weight)
             
             if left:
                 rx, ry = mouse_rel
-                k = self.grid.cell_size / self.grid.cell_px / self.dt * weight
+                k = self.grid.cell_size / self.grid.cell_px / self.grid.dt * weight
                 self.grid.u[i_start:i_end, j_start:j_end] += k * rx
                 self.grid.v[i_start:i_end, j_start:j_end] -= k * ry
             
@@ -212,7 +211,7 @@ class SimulationScreen:
         
         
     def update(self) -> None:
-        self.grid.dt = self.app.dt
+        self.grid.dt = 1 / settings.fps
         for widget in self.get_widget_chain(self.shw_debug_chk.checked):
             widget.update(self.app.hovering.id, -1)
         self._update_grid()
@@ -230,6 +229,9 @@ class SimulationScreen:
 
 
     def _update_grid(self) -> None:
+        
+        self._update_screen()
+        return
             
         project = self.proj_field_chk.checked
         advect = self.adv_field_chk.checked
@@ -270,12 +272,12 @@ class SimulationScreen:
     #   ==========[ DRAW ]==========
     def draw_grid(self, screen:pg.Surface) -> None:
         
-        self.grid.get_walls_field_img(self.base_img)
+        #self.grid.get_walls_field_img(self.base_img)
         base_surf = pg.surfarray.make_surface(self.base_img)
-        self.img_surf.blit(pg.transform.scale(base_surf, self.grid.grid_size), (0, 0))
+        self.img_surf.blit(pg.transform.scale(base_surf, self.grid.dim), (0, 0))
         screen.blit(self.img_surf, self.grid.rect)
-        
-        if np.any(self.vel_img != 0):
+
+        if self.shw_vel_chk.checked:
             vel_surf = pg.surfarray.make_surface(self.vel_img)
             vel_surf.set_colorkey((0, 0, 0))
             screen.blit(vel_surf, self.grid.rect)

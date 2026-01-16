@@ -113,8 +113,8 @@ def clamp_index(num_cells:int, floor:np.int16, fract:np.float64) -> tuple[np.int
         fract += 0.5
     else:
         fract -= 0.5
-    if floor < 0: floor = 1
-    elif floor >= num_cells: floor = num_cells - 1
+    if floor < 0: floor = 0
+    elif floor >= num_cells: floor = num_cells
     return floor, fract
 
 @njit("Tuple((int16[:], float64[:]))(float64[:])", cache=True, inline="always")

@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import shutil
+from dataclasses import dataclass
 
 from .time import get_now
 
@@ -56,13 +57,14 @@ def edit_json(filepath, content:dict) -> True | False:
     return False
 
 
-def create_project(name:str, gravity:int) -> None:
+def create_project(name:str, resolution: int, gravity:int) -> None:
     """creates new project directory"""
     
-    def create_dir(name:str, gravity:int) -> True | False:
+    def create_dir(name:str, resolution: int, gravity:int) -> True | False:
         
         filepath = os.path.join(SAVES_PATH, name)
         options = {
+            "resolution": resolution,
             "gravity": gravity
         }
         metadata = {
@@ -86,10 +88,10 @@ def create_project(name:str, gravity:int) -> None:
     
     if not name: name = "New Project"
     log.debug(f"Creating project with name {name}...")
-    if create_dir(name, gravity): return
+    if create_dir(name, resolution, gravity): return
     counter = 1
     while True:
-        if not create_dir(f"{name} ({counter})", gravity):
+        if not create_dir(f"{name} ({counter})", resolution, gravity):
             counter += 1
         else:
             break
@@ -102,7 +104,7 @@ def rename_project(old_name:str, new_name:str, counter=1) -> True | False:
     if old_name == new_name: return True
     projects = scan_projects()
     for project in projects:
-        if project["name"] == new_name:
+        if project.name == new_name:
             log.warning(f"Project name {new_name} has already been taken, adding counter")
             if counter != 1:
                 name_parts = new_name.split()
@@ -153,22 +155,23 @@ def delete_project(name:str) -> True | False:
         log.error(f"An error has occured when deleting project {name} ({e})")
     return False
 
+@dataclass
+class Project:
+    name: str
+    path: str
+    options: dict[str, float]
+    metadata: dict[str, str]
         
-def scan_projects() -> list[dict[str, str|dict[str, str|int]]]:
+def scan_projects() -> list[Project]:
     """scans all saved projects"""
     
     log.info(f"Scanning projects root /{SAVES_PATH}...")
-    projects: list[dict] = []
+    projects: list[Project] = []
     for entry in os.scandir(SAVES_PATH):
         if not entry.is_dir(): continue     #   skip if not a folder
         log.debug(f"Found directory /{entry.path}")
         
-        data = {
-            "name": entry.name,
-            "path": entry.path,
-            "options": {},
-            "metadata": {}
-        }
+        metadata: dict[str, float] = None
         
         log.debug(f"Scanning files...")
         for item in os.scandir(entry.path):
@@ -180,15 +183,19 @@ def scan_projects() -> list[dict[str, str|dict[str, str|int]]]:
                 case "metadata.json":
                     content = load_json(item.path)
                     if not content: continue
-                    data["metadata"] = content
+                    metadata = content
                     
-                case "options.json": pass
+                case "options.json":
+                    content = load_json(item.path)
+                    if not content: continue
+                    options: dict[str, float] = content
                 case _: continue
         
-        if data["metadata"]: 
+        if metadata: 
             log.info(f"'{entry.name}' is a project directory")
-            projects.append(data)
+            projects.append(Project(entry.name, entry.path, options, metadata))
         else:
-            log.warning(f"{entry.name} is not a project directory")
-    projects.sort(key=lambda x: os.path.getctime(os.path.join(SAVES_PATH, x["name"])), reverse=True)
+            log.warning(f"'{entry.name}' is not a project directory")
+    projects.sort(key=lambda x: os.path.getctime(os.path.join(SAVES_PATH, x.name)), reverse=True)
     return projects
+

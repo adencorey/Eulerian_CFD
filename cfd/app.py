@@ -6,6 +6,7 @@ import logging
 import sys
 
 from cfd.settings.manager import settings
+from cfd.helpers.files import Project
 from cfd.interface.config import Events, Screens, Delay
 from cfd.interface.widgets import Widget, NULLWIDGET, TextBox
 from cfd.interface.screens import *
@@ -42,10 +43,10 @@ class App:
         self.hovering: Widget = NULLWIDGET
         self.selected: TextBox = NULLWIDGET
         self.highlighted: Widget = NULLWIDGET
+        self.project: Project = None
         self.keyboard_inp = ""
         self.max_char = -1
 
-        self.dt = 1 / settings.tps
         self.clock: pg.time.Clock = pg.time.Clock()
         self.current_screen = LibraryScreen(self)
         self.tool_bar = ToolBar()
@@ -79,9 +80,6 @@ class App:
             for event in pg.event.get():
                 self.tool_bar.handle_events(event)
                 self.current_screen.handle_events(event)
-                
-                if event.type == Events.CLEAR_INPUT: 
-                    self.keyboard_inp = ""
                     
                 if event.type == Events.KEYBOARD_INPUT: 
                     typing = True
@@ -100,7 +98,7 @@ class App:
                     if event.type == pg.TEXTINPUT:
                         if len(self.keyboard_inp) < self.max_char:
                             self.keyboard_inp += event.text
-                    self.current_screen.handle_type(self.keyboard_inp)
+                    self.selected.text = self.keyboard_inp
 
                 if event.type == Events.DELAY_FUNCTION:
                     self.delay_queue.append(event.function)

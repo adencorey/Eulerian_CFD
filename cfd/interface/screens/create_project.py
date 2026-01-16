@@ -16,32 +16,36 @@ class CreateProjectScreen:
         from cfd.app import App
         self.app: App = app
         
-        self.btn_size = int(0.2 * config.width), int(0.05 * config.height)
-        self.tb_size = int(0.35 * config.width), int(0.06 * config.height)
-        self.sb_size = int(0.25 * config.width), int(0.01 * config.height)
+        btn_size = int(0.2 * config.width), int(0.05 * config.height)
+        tb_size = int(0.35 * config.width), int(0.06 * config.height)
+        sb_size = int(0.25 * config.width), int(0.01 * config.height)
 
         #   ==========[ TITLE ]==========
         self.title_surf = config.font["title"].render("Create Project", True, config.main_clr)
         
         #   ==========[ PROJECT NAME ]==========
-        self.proj_name_info = Info(name="proj_name_info", title="Project Name", pos=get_grid(10, 7), description="Name of the new project")
-        self.proj_textbox = TextBox(name="proj_nme_tbx", rect=pg.Rect(get_grid(15, 9), self.tb_size), anchor="n", placeholder="New Project", max=30)
+        self.proj_name_info = Info(name="proj_name_info", title="Project Name", pos=get_grid(10, 5), description="")
+        self.proj_textbox = TextBox(name="proj_nme_tbx", rect=pg.Rect(get_grid(15, 7), tb_size), anchor="n", placeholder="New Project", max=30)
+        
+        #   ==========[ RESOLUTION ]==========
+        self.res_info = Info(name="res_info", title="Environment Resolution", pos=get_grid(10, 10), description="Number of cells on either side of the fluid environment (since it is a square). Time complexity is O(N^2) or worse. High performance load.")
+        self.res_sb = Slidebar(name="res_sb", rect=pg.Rect(get_grid(15, 12), sb_size), min_val=32, max_val=256, step=4, default=64)
         
         #   ==========[ GRAVITY STRENGTH SLIDEBAR ]==========
         self.grav_info = Info(name="grav_info", title="Gravity Strength", pos=get_grid(10, 15), description="Gravity strength of project environment, multiplier of acceleration due to gravity on Earth (9.81 ms^-2).")
-        self.grav_sb = Slidebar(name="grav_sb", rect=pg.Rect(get_grid(15, 17), self.sb_size), min_val=-1, max_val=5, step=0.1, default=1)
+        self.grav_sb = Slidebar(name="grav_sb", rect=pg.Rect(get_grid(15, 17), sb_size), min_val=-1, max_val=5, step=0.1, default=1)
         
         #   ==========[ BACK BUTTON ]==========
-        self.canc_btn = RectButton(name="canc_btn", rect=pg.Rect(get_grid(10, 25), self.btn_size), anchor="n", text="Cancel")
+        self.canc_btn = RectButton(name="canc_btn", rect=pg.Rect(get_grid(10, 25), btn_size), anchor="n", text="Cancel")
         
         #   ==========[ CREATE BUTTON ]==========
-        self.crt_btn = RectButton(name="crt_proj_btn", rect=pg.Rect(get_grid(20, 25), self.btn_size), anchor="n", text="Create Project")
+        self.crt_btn = RectButton(name="crt_proj_btn", rect=pg.Rect(get_grid(20, 25), btn_size), anchor="n", text="Create Project")
         
         
         self.buttons: list[RectButton] = [self.canc_btn, self.crt_btn]
         self.textboxes: list[TextBox] = [self.proj_textbox]
-        self.slidebars: list[Slidebar] = [self.grav_sb]
-        self.infos: list[Info] = [self.proj_name_info, self.grav_info]
+        self.slidebars: list[Slidebar] = [self.res_sb, self.grav_sb]
+        self.infos: list[Info] = [self.proj_name_info, self.res_info, self.grav_info]
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_hover(self, mouse_pos: tuple) -> None:
@@ -91,7 +95,7 @@ class CreateProjectScreen:
                     extra_data["screen_id"] = Screens.LIBRARY.value
                     
                 case self.crt_btn.id:
-                    create_project(self.proj_textbox.text, self.grav_sb.value)
+                    create_project(self.proj_textbox.text, int(self.res_sb.value), self.grav_sb.value)
                     event = Events.SCREEN_SWITCH
                     extra_data["screen_id"] = Screens.LIBRARY.value
             
@@ -108,22 +112,21 @@ class CreateProjectScreen:
         
     def handle_events(self, event: pg.event.Event) -> None:
         
-        mouse_pos: tuple = pg.mouse.get_pos()
+        mouse = pg.mouse
+        mouse_pos = mouse.get_pos()
+        left = mouse.get_pressed()[0]
         
         if event.type == pg.MOUSEMOTION:
             self._handle_hover(mouse_pos)
-        if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
+            if left: self._handle_drag(mouse_pos)
+        if event.type == pg.MOUSEBUTTONDOWN and left:
             self._handle_click()
-        if pg.mouse.get_pressed()[0]:
-            self._handle_drag(mouse_pos)
-        if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
-            self.grav_sb.dragging = False
+        if event.type == pg.MOUSEBUTTONUP and not left:
+            for sb in self.slidebars:
+                if sb.dragging: sb.dragging = False
             
         if self.app.selected.id:
             pg.event.post(pg.event.Event(Events.KEYBOARD_INPUT, {"max_char": self.app.selected.max}))
-            
-    def handle_type(self, text:str) -> None:
-        self.app.selected.text = text
     
     
     #   ==========[ UPDATE ]==========    

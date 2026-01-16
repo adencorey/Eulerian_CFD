@@ -10,7 +10,7 @@ class Settings:
 
     def __init__(self, theme_name="dark", fps=60, show_fps=False, iterator=50, sor_weight=1.6) -> None:
         
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)  #   make the directory /local/settings.json
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
         self.theme_name = theme_name
         self.fps = fps
         self.show_fps = show_fps
@@ -19,11 +19,9 @@ class Settings:
         self.load()
     
     @property
-    def path(self):
-        return os.path.join("local", "settings.json")
+    def path(self): return os.path.join("local", "settings.json")
     @property
-    def theme(self):
-        return THEME[self.theme_name]
+    def theme(self): return THEME[self.theme_name]
         
     def save(self) -> True | False:
         """save current settings to json file"""
@@ -54,6 +52,9 @@ class Settings:
             
             except ValueError as e:
                 log.warning(f"Failed to read file, file may be corrupted ({e}) ")
+                
+            except Exception as e:
+                log.warning(f"An error has occured when reading settings, using default settings ({e})")
         else:
             log.debug("Settings file not found, using default settings")
 settings = Settings()
