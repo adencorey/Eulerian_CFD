@@ -92,11 +92,13 @@ class LibraryScreen:
                     if not self.crt_btn.disabled:
                         event = Events.SCREEN_SWITCH
                         extra_data["screen_id"] = Screens.CRT_PROJ.value
+                        self.app.highlighted = NULLWIDGET
                 
                 case self.edit_btn.id:
                     if not self.edit_btn.disabled:
                         event = Events.SCREEN_SWITCH
                         extra_data["screen_id"] = Screens.EDIT_PROJ.value
+                        self.app.highlighted = NULLWIDGET
                 
                 case self.del_btn.id:
                     if not self.del_btn.disabled:
@@ -105,11 +107,12 @@ class LibraryScreen:
                             extra_data["function"] = self.del_btn.toggle_confirm()
                         else:
                             if self.app.highlighted.id:
-                                delete_project(self.app.highlighted.text)
+                                delete_project(self.app.project.name)
                                 self.__init__(self.app)
                     
                 case _:
                     return
+            
         logger.debug(f"Clicked {self.app.hovering.name}")
         if event: pg.event.post(pg.event.Event(event, extra_data))
         

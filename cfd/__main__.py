@@ -7,7 +7,7 @@ import cfd.helpers.logger as log
 if __name__ == "__main__":
     
     log.init()
-    profile = True
+    profile = False
     if profile:
         cProfile.run("main()", "cfd_profile.prof")
         stats = pstats.Stats("cfd_profile.prof")

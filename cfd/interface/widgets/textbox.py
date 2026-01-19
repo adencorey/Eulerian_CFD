@@ -14,8 +14,10 @@ class TextBox(Widget):
         self.max = max
         self.placeholder = placeholder
         self.text_offset = int(0.5 * (self.rect.height - self.font.get_height()))
-        
         self.selected = False
+        
+    def get_input(self) -> str:
+        return self.text if self.text else self.placeholder
         
     #   ==========[ UPDATE ]==========
     def _update_text(self) -> None:

@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import shutil
+from pathlib import Path
 from dataclasses import dataclass
 
 from .time import get_now
@@ -9,7 +10,7 @@ from .time import get_now
 log = logging.getLogger(__name__)
 
 
-SAVES_PATH = os.path.dirname(os.path.join("local", "saves"))
+SAVES_PATH = os.path.join(Path(__file__).parent.parent.parent, "local", "saves")
 os.makedirs(SAVES_PATH, exist_ok=True)
 
 def create_json(filepath, content:dict) -> True | False:

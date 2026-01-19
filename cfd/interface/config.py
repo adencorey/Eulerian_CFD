@@ -15,8 +15,6 @@ class Screens(Enum):
     EDIT_PROJ = 2
     SETTINGS = 3
     SIMULATION = 4
-    CONFIG_INIT_PARAM = 5
-
     
 #   ==========[ OBJECT REGISTRY ]==========
 class WidgetRegister:

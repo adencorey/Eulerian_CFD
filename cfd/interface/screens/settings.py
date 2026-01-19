@@ -32,7 +32,7 @@ class SettingsScreen:
         
         #   ==========[ GAUSS-SEIDEL ITERATION ]
         self.iter_info = Info(name="iter_info", title="Gauss-Seidel Iteration", pos=get_grid(16, 7), description="Number of times pressure solver iterates per frame, more iterations yield better the approximation. High performance load.")
-        self.iter_sb = Slidebar(name="iter_sb", rect=pg.Rect(get_grid(21, 9), SB_DIM), min_val=10, max_val=100, step=1, default=settings.iterator)
+        self.iter_sb = Slidebar(name="iter_sb", rect=pg.Rect(get_grid(21, 9), SB_DIM), min_val=50, max_val=200, step=5, default=settings.iterator)
 
         #   ==========[ SUCCESSIVE OVER-RELAXATION WEIGHT ]==========
         self.sor_weight_info = Info(name="sor_weight_info", title="Successive Over-relaxation Weight", pos=get_grid(16, 12), description="Artificial multiplier applied on pressure values after every calculation. Pressure values with same degree of accuracy can be calculated with less Gauss-Seidel iterations, but incorrect pressure values may be calculated. Any value higher than 1.8 is not recommended.")

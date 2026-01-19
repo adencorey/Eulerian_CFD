@@ -1,7 +1,6 @@
 import pygame as pg
 
 from typing import Generator
-import traceback
 import logging
 import sys
 
@@ -63,8 +62,6 @@ class App:
             self.current_screen = SettingsScreen(self)
         elif screen_id == Screens.SIMULATION.value:
             self.current_screen = SimulationScreen(self)
-        elif screen_id == Screens.CONFIG_INIT_PARAM.value:
-            self.current_screen = ConfigInitParamScreen(self)
                 
     #   mainloop
     def run(self):

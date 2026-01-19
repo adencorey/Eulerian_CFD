@@ -9,8 +9,10 @@ from cfd.app import App
 def main() -> None:
     
     logger = logging.getLogger("cfd.main")
+    logger.info("Finished compiling algorithms")
     
     #   initialise pygame screen
+    logger.info("Initialising Pygame")
     pg.init()
     #   maximise and no OS manager (minimise/quit buttons)
     screen = pg.display.set_mode((0, 0), pg.RESIZABLE | pg.NOFRAME)

@@ -97,13 +97,14 @@ class EditProjectScreen:
                     extra_data["screen_id"] = Screens.LIBRARY.value
                     
                 case self.save_btn.id:
-                    name = self.proj_textbox.text
+                    old_name = self.app.project.name
+                    new_name = self.proj_textbox.get_input()
                     options = {
                         "resolution": self.res_sb.value,
                         "gravity": self.grav_sb.value
                     }
-                    rename_project(self.app.highlighted.text, name)
-                    edit_project(name, options)
+                    rename_project(old_name, new_name)
+                    edit_project(new_name, options)
                     event = Events.SCREEN_SWITCH
                     extra_data["screen_id"] = Screens.LIBRARY.value
                     

@@ -12,12 +12,12 @@ class Grid:
     def __init__(self, project: Project) -> None:
         
         self.dt = 1 / settings.fps
-        self.num_cells = int(project.options["resolution"])
+        self.num_cells =     int(project.options["resolution"])
         self.scale = (self.num_cells - 2) / 32
         self.env_length = 10                    #   10 meters
         self.cell_size = self.env_length / (self.num_cells - 2)
         
-        self.cell_px = int(0.9 * config.height / self.num_cells)
+        self.cell_px = int(0.95 * config.height // self.num_cells)
         self.dim = (self.num_cells * self.cell_px * np.ones(2)).astype(np.uint16)
         self.surf = pg.Surface(self.dim)
         self.rect = self.surf.get_rect(bottomright=np.array((config.width, config.height)) - int((0.98 * config.height - self.dim[1]) / 2) * np.ones(2))
@@ -28,7 +28,7 @@ class Grid:
         self.pos = np.stack((x, y))
         
         self.density = 1
-        COLLOCATED_GRID = (self.num_cells, self.num_cells)
+        COLLOCATED_GRID = [self.num_cells, self.num_cells]
         
         #   wall cells  (1 - valid cell; 0 - wall cell)
         self.w = np.ones(COLLOCATED_GRID, dtype=np.uint8)
@@ -55,16 +55,20 @@ class Grid:
     
     
     #   ==========[ UTILITIES ]==========        
-    def hovered_cell(self, mouse_pos) -> tuple | None:
+    def hovered_cell(self, mouse_pos) -> tuple[int, int] | None:
         idx = None
         if self.rect.collidepoint(mouse_pos):
             idx = (np.array(mouse_pos) - np.array(self.rect.topleft)) // self.cell_px
-            idx = None if np.any((idx < 0) | (idx >= self.num_cells)) else tuple(np.flip(idx))
+            idx = None if np.any((idx < 0) | (idx >= self.num_cells)) else tuple(np.flip(idx).tolist())
         return idx
     
     def shrink_field(self, arr: np.ndarray) -> np.ndarray:
+
         side = arr.shape[0]
-        return arr if side <= 66 or side % 2 == 1 else self.shrink_field(0.25 * arr.reshape(side // 2, 2, side // 2, 2).sum(axis=1).sum(axis=2))
+        if side <= 64 or side % 2 == 1: return arr
+        arr = arr.reshape(side // 2, 2, side).sum(axis=1)               #   merge every two rows by summing their respective column values  (shrink vertically)
+        arr = arr.reshape(side // 2, side // 2, 2).sum(axis=-1)         #   for every new rows, sum every two values into one               (shrink horizontally)
+        return self.shrink_field(0.25 * arr)
     
     #   ==========[ UPDATE ]==========
     def set_boundary_values(self) -> None:
@@ -138,46 +142,27 @@ class Grid:
         img[:, :] = np.stack([c] * 3, axis=-1)
     
     def get_divergence_field_img(self, img:np.ndarray) -> None:
-        
-        div = np.clip(self.div, -5, 5)
+        div = np.clip(self.div, -5, 5).T
         norm = div / 5
         r = (255 * np.where(norm > 0, norm, 0)).astype(np.uint8)        #   red if outflow
         g = np.zeros_like(norm)
         b = (255 * np.where(norm < 0, -norm, 0)).astype(np.uint8)       #   blue if inflow
         img[:, :] = np.stack((r, g, b), axis=-1)
     
-    def get_pressure_field_img(self, img) -> None:
-        
-        #   normalise
-        p = self.p
-        max_p = np.percentile(np.abs(p), 95)   #   get 98th percentile to remove velocity spikes
+    def get_pressure_field_img(self, img, smoke_only=False) -> None:
+
+        p = self.p.T
+        max_p = 5_000 * self.density
         np.clip(p, -max_p, max_p, out=p)
-        if max_p <= 0.1 * self.density:
-            norm = 0.5 * np.ones_like(p)
-        else:
-            norm = 0.5 * (p / max_p) + 0.5
-        
+        norm = 0.5 * (p / max_p) + 0.5
+                
         #   jet colourmap (rainbow gradient)
-        r = np.where(norm < 0.5, 0, np.where(norm < 0.75, (255 * 4 * (norm - 0.5)), 255)).astype(np.uint8)
-        g = np.where(norm < 0.25, (255 * 4 * norm), np.where(norm < 0.75, 255, (255 * 4 * (1 - norm)))).astype(np.uint8)
-        b = np.where(norm < 0.25, 255, np.where(norm < 0.5, (255 * 4 * (0.5 - norm)), 0)).astype(np.uint8)
-        scale = np.clip(1.5 * self.s, 0, 1)
-        img[:, :] = np.stack((r, g, b), axis=-1)
-    """
-    def get_pressure_field_img(self, img) -> None:
-        #   normalisation
-        p = self.p
-        abs_max = np.max(np.abs(p))
-        norm = p / abs_max if abs_max > 0 else np.zeros_like(p)
-        norm = 0.5 * norm + 0.5
-        
-        #   jet colourmap (rainbow gradient)
-        r = np.where(norm < 0.5, 0, np.where(norm < 0.75, (255 * 4 * (norm - 0.5)), 255)).astype(np.uint8)
-        g = np.where(norm < 0.25, (255 * 4 * norm), np.where(norm < 0.75, 255, (255 * 4 * (1 - norm)))).astype(np.uint8)
-        b = np.where(norm < 0.25, 255, np.where(norm < 0.5, (255 * 4 * (0.5 - norm)), 0)).astype(np.uint8)
-        img[:, :] = np.stack((r, g, b), axis=-1)
-    """
-        
+        r = np.where(norm < 0.5, 0, np.where(norm < 0.75, (255 * 4 * (norm - 0.5)), 255))
+        g = np.where(norm < 0.25, (255 * 4 * norm), np.where(norm < 0.75, 255, (255 * 4 * (1 - norm))))
+        b = np.where(norm < 0.25, 255, np.where(norm < 0.5, (255 * 4 * (0.5 - norm)), 0))
+        weight = np.clip(1.5 * self.s, 0, 1).T if smoke_only else np.ones_like(p)
+        img[:, :] = np.stack((r, g, b) * weight, axis=-1).astype(np.uint8)
+
     def get_velocity_field_img(self, img:np.ndarray) -> None:
         
         u = 0.5 * (self.u[:, :-1] + self.u[:, 1:])
@@ -189,14 +174,14 @@ class Grid:
         
         mag = np.zeros_like(nu)
         mag[1:-1, 1:-1] = np.sqrt(np.sum(vel[:, 1:-1, 1:-1] ** 2, axis=0))
-        mag_clipped = np.clip(mag, 0, self.cell_px * 2 * factor)
+        mag_clipped = np.clip(mag, 0, self.cell_px * 1.25 * factor)
         
         is_mag = mag > 0
         d = np.zeros_like(vel)
         d[:, is_mag] = vel[:, is_mag] / mag[is_mag]     #   get direction vector where mag > 0
         
         #   draw velocity lines
-        steps = np.linspace(0, 1, 15)
+        steps = np.linspace(0, 1, 20)
         position = np.array((self.shrink_field(self.pos[0]), self.shrink_field(self.pos[1])))
         for step in steps:
             pos = (position[:, is_mag] + mag_clipped[is_mag] * d[:, is_mag] * step).astype(int)

@@ -14,3 +14,5 @@ def init() -> None:
             logging.StreamHandler()                             #   print out in console
         ]
     )
+    logger = logging.getLogger(__name__)
+    logger.info("Logging initialised")

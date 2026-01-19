@@ -95,7 +95,7 @@ class CreateProjectScreen:
                     extra_data["screen_id"] = Screens.LIBRARY.value
                     
                 case self.crt_btn.id:
-                    create_project(self.proj_textbox.text, int(self.res_sb.value), self.grav_sb.value)
+                    create_project(self.proj_textbox.get_input(), int(self.res_sb.value), self.grav_sb.value)
                     event = Events.SCREEN_SWITCH
                     extra_data["screen_id"] = Screens.LIBRARY.value
             
