@@ -8,8 +8,8 @@ def ghost_cells_boundary_check(u:np.ndarray[np.float64], v:np.ndarray[np.float64
     v[:, 0] = v[:, -1] = v[:, 0] = v[:, -1] = 0
     s[0, :] = s[-1, :] = s[:, 0] = s[:, -1] = 0
 
-@njit("void(uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True)
-def free_slip_wall_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], s:np.ndarray[np.float64]) -> None:
+@njit("void(uint16, uint8[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True)
+def free_slip_wall_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64]) -> None:
     """set normal velocity to 0 at wall cells"""
     
     # set u velocity to 0 where left or right is wall
@@ -21,7 +21,7 @@ def free_slip_wall_check(num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.
     # set v velocity to 0 where top or bottom is wall
     for i in prange(1, num_cells):
         for j in prange(1, num_cells - 1):
-            if w[i, j] == 0 or w[i+1, j] == 0:
+            if w[i, j] == 0 or w[i-1, j] == 0:
                 v[i, j] = 0
             
 #   ==========[ PROJECTION ]==========

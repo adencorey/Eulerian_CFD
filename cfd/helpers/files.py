@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import shutil
+import numpy as np
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -13,19 +14,21 @@ log = logging.getLogger(__name__)
 SAVES_PATH = os.path.join(Path(__file__).parent.parent.parent, "local", "saves")
 os.makedirs(SAVES_PATH, exist_ok=True)
 
+
+#   ==========[ JSON UTIlS ]==========
 def create_json(filepath, content:dict) -> True | False:
 
     try:
         with open(filepath, "x") as file:
             json.dump(content, file, indent=4)
-            log.info(f"Successfully created {filepath}")
+            log.info(f"Successfully created /{filepath}")
             return True
     except FileExistsError as e:
         log.error(f"{filepath} already exists ({e})")
     except PermissionError as e:
         log.error(f"Cannot write to file, please enable permision to write files ({e})")
     except Exception as e:
-        log.critical(f"An error has occured when creating {filepath} ({e})")
+        log.critical(f"An error has occured when creating /{filepath} ({e})")
     return False
         
 
@@ -36,11 +39,11 @@ def load_json(filepath) -> dict:
             log.debug(f"Successfully loaded /{filepath}")
             return json.load(file)
     except ValueError as e:
-        log.error(f"Cannot read from {filepath}, json may be corrupted ({e})")
+        log.error(f"Cannot read from /{filepath}, json may be corrupted ({e})")
     except PermissionError as e:
-        log.error(f"File cannot be read, please enable permission to read files ({e})")
+        log.error(f"I do not have permission to read from /{filepath}, ({e})")
     except Exception as e:
-        log.critical(f"An error has occured when loading {filepath} ({e})")
+        log.critical(f"An error has occured when loading /{filepath} ({e})")
     return False
 
 
@@ -49,13 +52,40 @@ def edit_json(filepath, content:dict) -> True | False:
     try:
         with open(filepath, "w") as file:
             json.dump(content, file, indent=4)
-            log.info(f"Successfully edited {filepath}")
+            log.info(f"Successfully edited /{filepath}")
             return True
     except PermissionError as e:
         log.error(f"Cannot write to file, please enable permision to write files ({e})")
     except Exception as e:
         log.critical(f"An error has occured when creating {filepath} ({e})")
     return False
+
+
+#   ==========[ NPY UTILS ]==========
+def save_npy(path: str, name: str, arr: np.ndarray) -> True | False:
+    
+    try:
+        filepath = os.path.join(path, name)
+        np.save(filepath, arr)
+        log.info(f"Successfully saved /{filepath}")
+        return True
+    except PermissionError as e:
+        log.error(f"I do not have permission to save to /{filepath}, ({e})")
+    return False
+    
+def load_npy(filepath: str) -> np.ndarray | None:
+    
+    try:
+        array = np.load(filepath)
+        log.info(f"Successfully loaded /{filepath}")
+        return array
+    except ValueError as e:
+        log.error(f"Cannot read from /{filepath}, npy may be corrupted ({e})")
+    except PermissionError as e:
+        log.error(f"I do not have permission to read from /{filepath}, ({e})")
+    except FileNotFoundError as e:
+        log.error(f"File not found at /{filepath} ({e})")
+    return None       
 
 
 def create_project(name:str, resolution: int, gravity:int) -> None:
@@ -177,7 +207,7 @@ def scan_projects() -> list[Project]:
         log.debug(f"Scanning files...")
         for item in os.scandir(entry.path):
             if not item.is_file(): continue
-            log.debug(f"Found file /{item.path}")
+            log.debug(f"Found file /{item.name}")
             
             #   read and load project files
             match item.name:
@@ -200,3 +230,38 @@ def scan_projects() -> list[Project]:
     projects.sort(key=lambda x: os.path.getctime(os.path.join(SAVES_PATH, x.name)), reverse=True)
     return projects
 
+def read_project(path: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    
+    log.info(f"Reading project directory /{path}...")
+    filepath = os.path.join(path, "grid")
+    os.makedirs(filepath, exist_ok=True)
+    try:
+        u = v = s = w = None
+        for item in os.scandir(filepath):
+            if not item.is_file(): continue
+            log.debug(f"Found file /{item.path}")
+            
+            match item.name:
+                case "u.npy": u = load_npy(item.path)
+                case "v.npy": v = load_npy(item.path)
+                case "w.npy": w = load_npy(item.path)
+                case "s.npy": s = load_npy(item.path)
+                case "_": continue
+        if u is None: log.warning("Missing u field.")
+        if v is None: log.warning("Missing v field.")
+        if s is None: log.warning("Missing s field.")
+        if w is None: log.warning("Missing w field.")
+        return u, v, s, w
+        
+    except FileNotFoundError as e:
+        log.error(f"filepath /{filepath} not found, ({e})")
+    return None, None, None, None
+
+def save_project(path: str, u: np.ndarray, v: np.ndarray, s: np.ndarray, w: np.ndarray) -> None:
+    
+    log.info(f"Saving to project directory /{path}...")
+    filepath = os.path.join(path, "grid")
+    save_npy(filepath, "u", u)
+    save_npy(filepath, "v", v)
+    save_npy(filepath, "s", s)
+    save_npy(filepath, "w", w)

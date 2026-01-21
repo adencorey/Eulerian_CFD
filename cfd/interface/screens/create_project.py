@@ -28,7 +28,7 @@ class CreateProjectScreen:
         self.proj_textbox = TextBox(name="proj_nme_tbx", rect=pg.Rect(get_grid(15, 7), tb_size), anchor="n", placeholder="New Project", max=30)
         
         #   ==========[ RESOLUTION ]==========
-        self.res_info = Info(name="res_info", title="Environment Resolution", pos=get_grid(10, 10), description="Number of cells on either side of the fluid environment (since it is a square). Time complexity is O(N^2) or worse. High performance load.")
+        self.res_info = Info(name="res_info", title="Environment Resolution", pos=get_grid(10, 10), description="Number of cells on either side of the fluid environment (since it is a square). You cannot change this after creating the environment. High performance load.")
         self.res_sb = Slidebar(name="res_sb", rect=pg.Rect(get_grid(15, 12), sb_size), min_val=32, max_val=256, step=4, default=64)
         
         #   ==========[ GRAVITY STRENGTH SLIDEBAR ]==========

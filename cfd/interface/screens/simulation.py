@@ -5,7 +5,7 @@ import logging
 from itertools import chain
 
 from cfd.settings.manager import settings
-from cfd.interface.config import config, Events, Screens
+from cfd.interface.config import config
 from cfd.interface.widgets import Widget, NULLWIDGET, Info, Dropdown, Slidebar, CheckBox, RectButton
 from cfd.helpers.screen import TITLE_POS, get_grid
 from cfd.simulation.grid import Grid
@@ -26,33 +26,45 @@ class SimulationScreen:
         btn_dim = (int(0.1 * config.width), int(0.04 * config.height))
         
         self.dsp_field = "Smoke"
-        self.dsp_field_info = Info(name="dsp-field-info", title="Display Field", pos=get_grid(2, 6), description="Select type of field to display.")
-        self.dsp_field_drp = Dropdown(name="dsp-field-drp", rect=pg.Rect(get_grid(8, 6), drp_dim), options=["Smoke", "Divergence", "Pressure"], setting=self.dsp_field, anchor="w", font=config.font["par"])
-        self.shw_vel_chk = CheckBox(name="shw-vel-chk", pos=get_grid(2, 7.5), text="Show velocity arrows")
+        self.dsp_field_info = Info(name="dsp-field-info", title="Display Field", pos=get_grid(2, 7), description="Select type of field to display.")
+        self.dsp_field_drp = Dropdown(name="dsp-field-drp", rect=pg.Rect(get_grid(8, 7), drp_dim), options=["Smoke", "Divergence", "Pressure"], setting=self.dsp_field, anchor="w", font=config.font["par"])
+        self.shw_vel_chk = CheckBox(name="shw-vel-chk", pos=get_grid(2, 8.5), text="Show velocity arrows")
         
         
-        self.brush_info = Info(name="brush_size_info", title="Brush Size", pos=get_grid(2, 9), description="Paint brush size.")
-        self.brush_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(9, 9), sb_dim), min_val=1, max_val=int(0.25 * self.grid.num_cells), step=1, default=int(0.1 * self.grid.num_cells))
+        self.brush_info = Info(name="brush_size_info", title="Brush Size", pos=get_grid(2, 10))
+        self.brush_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(9, 10), sb_dim), min_val=1, max_val=int(0.25 * self.grid.num_cells), step=1, default=int(0.1 * self.grid.num_cells))
         
-        self.shw_debug_chk = CheckBox(name="shw-debug-chk", pos=get_grid(2, 10.5), text="Show debug screen")
+        self.shw_debug_chk = CheckBox(name="shw-debug-chk", pos=get_grid(2, 11.5), text="Show debug screen")
         
         self.config_env = RectButton(name="config-env-btn", rect=pg.Rect(get_grid(2, 25), (int(0.18 * config.width), int(0.05 * config.height))), text="Configure Environment")
         
         #   ==========[ DEBUG SCREEN ]==========
-        self.total_div = Info(name="total_div_info", title="Total Divergence: 0", pos=get_grid(2, 12), description="Sum of magnitude of divergence of all cells, simulation will be less accurate if this number is huge. Divergence of a cell is how much velocity field diverge or converge around it", font=config.font["sub"], desc_font=config.font["sml"])
-        self.total_s = Info(name="total_s_info", title="Total Smoke Density: 0", pos=get_grid(2, 12.75), description="Sum of smoke density of all cells.", font=config.font["sub"], desc_font=config.font["sml"])
+        self.total_div = Info(name="total_div_info", title="Total Divergence: 0", pos=get_grid(2, 14), description="Sum of magnitude of divergence of all cells, simulation will be less accurate if this number is huge. Divergence of a cell is how much velocity field diverge or converge around it", font=config.font["sub"], desc_font=config.font["sml"])
+        self.total_s = Info(name="total_s_info", title="Total Smoke Density: 0", pos=get_grid(2, 14.75), description="Sum of smoke density of all cells.", font=config.font["sub"], desc_font=config.font["sml"])
         
-        self.cell_type = Info(name="cell_type_info", title="Cell Type: -", pos=get_grid(2, 14), description="Cell type of hovering cell, fluid cell - 1; wall cell - 0.", font=config.font["sub"], desc_font=config.font["sml"])
-        self.cell_idx = Info(name="cell_idx_info", title="Cell Index: (-, -)", pos=get_grid(2, 14.75), description="Grid index of hovering cell in (row, column), starts with top-left corner with index (0, 0).", font=config.font["sub"], desc_font=config.font["sml"])
-        self.cell_vel = Info(name="cell_vel_info", title="Velocity: (-, -)", pos=get_grid(2, 15.5), description="Velocity vector of hovering cell in meter per second.", font=config.font["sub"], desc_font=config.font["sml"])
-        self.cell_div = Info(name="cell_div_info", title="Divergence: -", pos=get_grid(2, 16.25), description="Divergence of hovering cell, diverging - positive; converging - negative.", font=config.font["sub"], desc_font=config.font["sml"])
-        self.cell_s = Info(name="cell_s_info", title="Smoke Density: -", pos=get_grid(2, 17), description="Smoke density of hovering cell from 0 to 1.", font=config.font["sub"], desc_font=config.font["sml"])
-        self.cell_p = Info(name="cell_p_into", title="Pressure: -", pos=get_grid(2, 17.75), description="Relative pressure of hovering cell, high - positive; normal - zero; low - negative.", font=config.font["sub"], desc_font=config.font["sml"])
+        self.cell_type = Info(name="cell_type_info", title="Cell Type: -", pos=get_grid(2, 16), description="Cell type of hovering cell, fluid cell - 1; wall cell - 0.", font=config.font["sub"], desc_font=config.font["sml"])
+        self.cell_idx = Info(name="cell_idx_info", title="Cell Index: (-, -)", pos=get_grid(2, 16.75), description="Grid index of hovering cell in (row, column), starts with top-left corner with index (0, 0).", font=config.font["sub"], desc_font=config.font["sml"])
+        self.cell_vel = Info(name="cell_vel_info", title="Velocity: (-, -)", pos=get_grid(2, 17.5), description="Velocity vector of hovering cell in meter per second.", font=config.font["sub"], desc_font=config.font["sml"])
+        self.cell_div = Info(name="cell_div_info", title="Divergence: -", pos=get_grid(2, 18.25), description="Divergence of hovering cell, diverging - positive; converging - negative.", font=config.font["sub"], desc_font=config.font["sml"])
+        self.cell_s = Info(name="cell_s_info", title="Smoke Density: -", pos=get_grid(2, 19), description="Smoke density of hovering cell from 0 to 1.", font=config.font["sub"], desc_font=config.font["sml"])
+        self.cell_p = Info(name="cell_p_into", title="Pressure: -", pos=get_grid(2, 19.75), description="Relative pressure of hovering cell, high - positive; normal - zero; low - negative.", font=config.font["sub"], desc_font=config.font["sml"])
         
-        self.proj_field_chk = CheckBox(name="proj-field-chk", pos=get_grid(2, 18.5), text="Enable projection step (clears out divergence)", font=config.font["sub"], checked=True)
-        self.adv_field_chk = CheckBox(name="adv-field-chk", pos=get_grid(2, 19.25), text="Enable advection step (transport velocities and smoke)", font=config.font["sub"], checked=True)
+        self.proj_field_chk = CheckBox(name="proj-field-chk", pos=get_grid(2, 20.5), text="Enable projection step (clears out divergence)", font=config.font["sub"], checked=True)
+        self.adv_field_chk = CheckBox(name="adv-field-chk", pos=get_grid(2, 21.25), text="Enable advection step (transport velocities and smoke)", font=config.font["sub"], checked=True)
         
         #   ==========[ CONFIGURE ENVIRONMENT SCREEN ]==========
+        self.clr_init_btn = RectButton(name="clr-init-btn", rect=pg.Rect(get_grid(2, 7), (int(0.18 * config.width), int(0.05 * config.height))), text="Clear Configurations")
+        
+        self.brush_type = "Circular"
+        self.brush_type_info = Info(name="brush-type-info", title="Brush Type", pos=get_grid(2, 13))
+        self.brush_type_drp = Dropdown(name="brush-type-drp", rect=pg.Rect(get_grid(8, 13), drp_dim), options=["Circular", "Square"], setting=self.brush_type, anchor="w", font=config.font["par"])
+        
+        self.vel_mag_info = Info(name="vel-mag-info", title="Velocity Magnitude", pos=get_grid(2, 16), description="Speed of fluid in that cell, measured in ms^-1.")
+        self.vel_mag_sb = Slidebar(name="vel-mag-sb", rect=pg.Rect(get_grid(7, 18), sb_dim), min_val=1, max_val=50, step=1, default=5)
+        
+        self.angle = 0
+        self.angle_info = Info(name="angle-info", title="Velocity Direction: 0 deg", pos=get_grid(2, 21), description="Angle of velocity in degrees, measured from positive horizontal (right) and increases anti-clockwise.")
+        
         self.save_btn = RectButton(name="save-env-btn", rect=pg.Rect(get_grid(2, 25), btn_dim), text="Save")
         self.cancel_btn = RectButton(name="cancel-env-btn", rect=pg.Rect(get_grid(7, 25), btn_dim), text="Cancel")
         
@@ -66,10 +78,13 @@ class SimulationScreen:
         self.debug_infos: list[Info] = [self.total_div, self.total_s, self.cell_type, self.cell_idx, self.cell_vel, self.cell_div, self.cell_s, self.cell_p]
         self.debug_chks: list[CheckBox] = [self.proj_field_chk, self.adv_field_chk]
         
-        self.config_btns: list[RectButton] = [self.save_btn, self.cancel_btn]
+        self.config_infos: list[Info] = [self.brush_info, self.angle_info, self.vel_mag_info, self.brush_type_info]
+        self.config_drps: list[Dropdown] = [self.brush_type_drp]
+        self.config_sbs: list[Slidebar] = [self.brush_sb, self.vel_mag_sb]
+        self.config_btns: list[RectButton] = [self.save_btn, self.cancel_btn, self.clr_init_btn]
         
         self.hover_idx: tuple[int, int] = None
-        self.config = False
+        self.configuring = False
         
         self.base_img = np.zeros([self.grid.num_cells, self.grid.num_cells, 3], dtype=np.uint8)
         self.vel_img = np.zeros((self.grid.dim[1], self.grid.dim[0], 3), dtype=np.uint8)
@@ -78,8 +93,8 @@ class SimulationScreen:
         
     def _widgets(self) -> chain[Widget]:
         widgets = chain(self.drps, self.infos, self.sbs, self.chks, self.btns)
+        if self.configuring: return chain(self.config_drps, self.config_infos, self.config_sbs, self.config_btns)
         if self.shw_debug_chk.checked: return chain(widgets, self.debug_infos, self.debug_chks)
-        if self.config: return chain([self.brush_info], self.sbs, self.config_btns)
         return widgets
         
     #   ==========[ EVENT HANDLING ]==========
@@ -105,7 +120,7 @@ class SimulationScreen:
     def _handle_click(self) -> None:        
         
         #   if any open dropdown not being hovered close it
-        for dropdown in self.drps:
+        for dropdown in chain(self.drps, self.config_drps):
             if dropdown.show and self.app.hovering.id != dropdown.id: dropdown.show = False
         if not self.app.hovering.name: return
         
@@ -118,12 +133,29 @@ class SimulationScreen:
         elif self.dsp_field_drp.hovering.name:
             self.dsp_field = self.dsp_field_drp.hovering.text
             self.dsp_field_drp.clicked(self.dsp_field)
+        
+        elif self.brush_type_drp.hovering.name:
+            self.brush_type = self.brush_type_drp.hovering.text
+            self.brush_type_drp.clicked(self.brush_type)
             
         elif self.app.hovering.id == self.config_env.id:
-            self.config = True
+            self.shw_debug_chk.checked = False
+            self.configuring = True
+            self.dsp_field = "Config"
+            self.grid.reset()
         
-        elif self.config and self.app.hovering.id == self.cancel_btn.id:
-            self.config = False
+        elif self.app.hovering.id == self.cancel_btn.id:
+            self.__init__(self.app)
+        
+        elif self.app.hovering.id == self.save_btn.id:
+            self.grid.save_conditions(self.app.project)            
+            self.__init__(self.app)
+        
+        elif self.app.hovering.id == self.clr_init_btn.id:
+            self.grid.u0[:, :] = 0
+            self.grid.v0[:, :] = 0
+            self.grid.s0[:, :] = 0
+            self.grid.w[:, :] = 1
             
         else:
             for widget in self._widgets():
@@ -140,12 +172,14 @@ class SimulationScreen:
     def _handle_drag(self, mouse_pos, left) -> None:
         
         if left:
-            for slidebar in self.sbs:
+            for slidebar in chain(self.sbs, self.config_sbs):
                 if slidebar.dragging:
                     slidebar.x_pos = mouse_pos[0]
                     break
     
-    def _handle_mouse(self, mouse_rel, left, mid, right) -> None:
+    def _handle_mouse(self, mouse_rel, left, mid, right, shift) -> None:
+        
+        if not any([left, mid, right, shift]): return
         
         i, j = self.hover_idx
         radius = int(self.brush_sb.value)
@@ -159,24 +193,44 @@ class SimulationScreen:
         x_span = np.arange(i_start, i_end)
         y_span = np.arange(j_start, j_end)
         x, y = np.meshgrid(x_span, y_span, indexing='ij')
-        weight = 1 - np.hypot(x - i, y - j) / radius
+        
+        weight = 1 - (np.hypot(x - i, y - j) / radius)
         np.clip(weight, 0, 1, out=weight)
+        if self.brush_type == "Square":
+            weight = np.ones_like(weight)
         
-        if left:
-            rx, ry = mouse_rel
-            k = self.grid.cell_size / self.grid.cell_px / self.grid.dt * weight
-            self.grid.u[i_start:i_end, j_start:j_end] += k * rx
-            self.grid.v[i_start:i_end, j_start:j_end] -= k * ry
-        
-        if mid:
-            self.grid.w[i_start:i_end, j_start:j_end] = 1 - np.clip((weight * 2 * radius).astype(np.uint8), 0, 1)
+        if not self.configuring:
+            if left:
+                rx, ry = mouse_rel
+                k = self.grid.cell_size / self.grid.cell_px / self.grid.dt * weight
+                self.grid.u[i_start:i_end, j_start:j_end] += k * rx
+                self.grid.v[i_start:i_end, j_start:j_end] -= k * ry
             
-        if right:
-            self.grid.s[i_start:i_end, j_start:j_end] += weight
-            np.clip(self.grid.s, 0, 1, out=self.grid.s)
+            if right:
+                self.grid.s[i_start:i_end, j_start:j_end] += weight
+                np.clip(self.grid.s, 0, 1, out=self.grid.s)
+        
+        else:
+            if mid or (left and shift):
+                self.grid.w[i_start:i_end, j_start:j_end] *= 1 - np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
+                np.clip(self.grid.w, 0, 1, out=self.grid.w)
+            
+            else:
+                if left:
+                    rad = np.deg2rad(self.angle)
+                    self.grid.u0[i_start:i_end, j_start:j_end] = self.vel_mag_sb.value * np.cos(rad) * weight
+                    self.grid.v0[i_start:i_end, j_start:j_end] = self.vel_mag_sb.value * np.sin(rad) * weight
+                
+                if right:
+                    self.grid.s0[i_start:i_end, j_start:j_end] += np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
+                    np.clip(self.grid.s0, 0, 1, out=self.grid.s0)
+            
+            
+            
         
     def handle_events(self, event: pg.event.Event) -> None:
         
+        keys = pg.key.get_pressed()
         mouse = pg.mouse
         mouse_pos = mouse.get_pos()
         mouse_rel = mouse.get_rel()
@@ -185,12 +239,17 @@ class SimulationScreen:
             self._handle_hover(mouse_pos)
             self.hover_idx = self.grid.hovered_cell(mouse_pos)
             self._handle_drag(mouse_pos, left)
-        if self.hover_idx is not None and (left or right):
-            self._handle_mouse(mouse_rel, left, mid, right)
+        if self.hover_idx is not None:
+            self._handle_mouse(mouse_rel, left, mid, right, keys[pg.K_LSHIFT])
         if event.type == pg.MOUSEBUTTONDOWN and left:
             self._handle_click()
         if event.type == pg.MOUSEBUTTONUP and not left:
-            self.brush_sb.dragging = False
+            for sb in chain(self.sbs, self.config_sbs):
+                if sb.dragging: sb.dragging = False
+        
+        if not (keys[pg.K_z] and keys[pg.K_x]):
+            if keys[pg.K_z]: self.angle = (self.angle + 5) % 360
+            if keys[pg.K_x]: self.angle = (self.angle - 5) % 360
         
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_SPACE:
@@ -200,91 +259,111 @@ class SimulationScreen:
     #   ==========[ UPDATE ]==========
     def _update_text(self) -> None:
         
-        self.total_div.title = f"Total Divergence: {np.sum(np.abs(self.grid.div)):.4f}"
-        self.total_s.title = f"Total Smoke Density: {np.sum(self.grid.s):.4f}"
-        
-        if self.hover_idx is not None:
-            type_text = self.grid.w[self.hover_idx]
-            idx_text = self.hover_idx
-            vel_text = f"({self.grid.u[self.hover_idx]:.4f}, {self.grid.v[self.hover_idx]:.4f})"
-            div_text = f"{self.grid.div[self.hover_idx]:.4f}"
-            s_text = f"{self.grid.s[self.hover_idx]:.4f}"
-            p_text = f"{self.grid.p[self.hover_idx]:.4f}"
-        else:
-            idx_text = vel_text = "(-, -)"
-            type_text = div_text = s_text = p_text = "-"
+        if self.shw_debug_chk.checked:
+            self.total_div.title = f"Total Divergence: {np.sum(np.abs(self.grid.div)):.4f}"
+            self.total_s.title = f"Total Smoke Density: {np.sum(self.grid.s):.4f}"
             
-        self.cell_type.title = f"Cell Type: {type_text}"
-        self.cell_idx.title = f"Cell Index: {idx_text}"
-        self.cell_vel.title = f"Velocity: {vel_text}"
-        self.cell_div.title = f"Divergence: {div_text}"
-        self.cell_s.title = f"Smoke Density: {s_text}"
-        self.cell_p.title = f"Pressure: {p_text}"
+            if self.hover_idx is not None:
+                type_text = self.grid.w[self.hover_idx]
+                idx_text = self.hover_idx
+                vel_text = f"({self.grid.u[self.hover_idx]:.4f}, {self.grid.v[self.hover_idx]:.4f})"
+                div_text = f"{self.grid.div[self.hover_idx]:.4f}"
+                s_text = f"{self.grid.s[self.hover_idx]:.4f}"
+                p_text = f"{self.grid.p[self.hover_idx]:.4f}"
+            else:
+                idx_text = vel_text = "(-, -)"
+                type_text = div_text = s_text = p_text = "-"
+                
+            self.cell_type.title = f"Cell Type: {type_text}"
+            self.cell_idx.title = f"Cell Index: {idx_text}"
+            self.cell_vel.title = f"Velocity: {vel_text}"
+            self.cell_div.title = f"Divergence: {div_text}"
+            self.cell_s.title = f"Smoke Density: {s_text}"
+            self.cell_p.title = f"Pressure: {p_text}"
+            
+        if self.configuring:
+            self.angle_info.title = f"Velocity Direction: {self.angle} deg"
         
         
     def update(self) -> None:
-        self.grid.dt = 1 / settings.fps
+
         for widget in self._widgets():
             widget.update(self.app.hovering.id, -1)
         self._update_grid()
         
     def _update_screen(self) -> None:
         
-        if self.shw_debug_chk.checked: self._update_text()
+        self._update_text()
         match self.dsp_field:
             case "Smoke": self.grid.get_smoke_field_img(self.base_img)
             case "Divergence": self.grid.get_divergence_field_img(self.base_img)
-            case "Pressure": self.grid.get_pressure_field_img(self.base_img)
+            case "Pressure": self.grid.get_pressure_field_img(self.base_img, smoke_only=True)
+            case "Config": self.grid.get_smoke_field_img(self.base_img, initial=True)
         self.vel_img[:, :, :] = 0
-        if self.shw_vel_chk.checked:
+        
+        if self.configuring:
+            self.grid.get_velocity_field_img(self.vel_img, initial=True)
+        elif self.shw_vel_chk.checked:
             self.grid.get_velocity_field_img(self.vel_img)
 
 
     def _update_grid(self) -> None:
+        
+        if not self.configuring:
+            project = self.proj_field_chk.checked
+            advect = self.adv_field_chk.checked
+            iter = settings.iterator
+            sor = settings.sor_weight
+                    
+            #   1. add external sources
+            #self.grid.v[1:-1, 1:-1] += self.dt * -9.81      #   gravity
+
             
-        project = self.proj_field_chk.checked
-        advect = self.adv_field_chk.checked
-        iter = settings.iterator
-        sor = settings.sor_weight
+            if self.wind_tunnel:
+                self.grid.u[0:2, 1:-1] = 15
+                self.grid.s[0, self.grid.num_cells//2-int(self.grid.scale):self.grid.num_cells//2+int(self.grid.scale)+1] = 1
+            
+            init_smoke = self.grid.s0 > 0
+            self.grid.s[init_smoke] = self.grid.s0[init_smoke]
+            
+            init_u = self.grid.u0 > 0
+            self.grid.u[init_u] += self.grid.u0[init_u]
+            
+            init_v = self.grid.v0 > 0
+            self.grid.v[init_v] += self.grid.v0[init_v]
+            
+            self.grid.set_boundary_values()
+            
+            #   2. move smoke and velocity around
+            if advect:
+                self.grid.advect_smoke()
+                self.grid.advect_velocities()
+                np.clip(self.grid.s, 0, 1, out=self.grid.s)
                 
-        #   1. add external sources
-        #self.grid.v[1:-1, 1:-1] += self.dt * -9.81      #   gravity
-
-        if self.wind_tunnel:
-            self.grid.u[0:2, 1:-1] = 15
-            self.grid.s[0, self.grid.num_cells//2-int(self.grid.scale):self.grid.num_cells//2+int(self.grid.scale)+1] = 1
-        
-        self.grid.set_boundary_values()
-        
-        #   2. move smoke and velocity around
-        if advect:
-            self.grid.advect_smoke()
-            self.grid.advect_velocities()
             
-        #   3. clears out divergence to enforce incompressibility
-        self.grid.calculate_divergence()
-        self.grid.calculate_pressure(iter, sor)
-        if project: self.grid.project_velocities()
+            #   3. clears out divergence to enforce incompressibility
+            self.grid.calculate_divergence()
+            self.grid.calculate_pressure(iter, sor)
+            if project: self.grid.project_velocities()
 
+            self.grid.set_boundary_values()
+        
+            
+            
         #   4. update screen  
         self.grid.calculate_divergence()
         self._update_screen()
-        
-        #   6. manage boundary values again
-        self.grid.set_boundary_values()   
-        
-        #self.grid.diffuse_smoke(iter, sor)
-        
+
     
     #   ==========[ DRAW ]==========
     def draw_grid(self, screen:pg.Surface) -> None:
         
-        #self.grid.get_walls_field_img(self.base_img)
+        self.grid.get_walls_field_img(self.base_img)
         base_surf = pg.surfarray.make_surface(self.base_img)
         self.img_surf.blit(pg.transform.scale(base_surf, self.grid.dim), (0, 0))
         screen.blit(self.img_surf, self.grid.rect)
 
-        if self.shw_vel_chk.checked:
+        if self.shw_vel_chk.checked or self.configuring:
             vel_surf = pg.surfarray.make_surface(self.vel_img)
             vel_surf.set_colorkey((0, 0, 0))
             screen.blit(vel_surf, self.grid.rect)
@@ -301,18 +380,12 @@ class SimulationScreen:
                 continue
             widget.draw(screen)
             
-        for dropdown in self.drps:
+        for dropdown in chain(self.drps, self.config_drps):
             if dropdown.show:
                 dropdown.draw_children(screen)
                 break                
             
-        for info in self.infos:
+        for info in chain(self.infos, self.debug_infos, self.config_infos):
             if self.app.hovering.id == info.id:
                 info.draw_description(screen)
                 break
-            
-        if self.shw_debug_chk.checked:
-            for info in self.debug_infos:
-                if self.app.hovering.id == info.id:
-                    info.draw_description(screen)
-                    break

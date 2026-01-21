@@ -1,18 +1,17 @@
 import numpy as np
 import pygame as pg
 
-from cfd.helpers.files import Project
+from cfd.helpers.files import Project, read_project, save_project
 from cfd.interface.config import config
 from cfd.settings.manager import settings
 from cfd.simulation.algorithms import *
-
 
 class Grid:
     
     def __init__(self, project: Project) -> None:
         
         self.dt = 1 / settings.fps
-        self.num_cells =     int(project.options["resolution"])
+        self.num_cells = int(project.options["resolution"])
         self.scale = (self.num_cells - 2) / 32
         self.env_length = 10                    #   10 meters
         self.cell_size = self.env_length / (self.num_cells - 2)
@@ -28,31 +27,43 @@ class Grid:
         self.pos = np.stack((x, y))
         
         self.density = 1
-        COLLOCATED_GRID = [self.num_cells, self.num_cells]
-        
-        #   wall cells  (1 - valid cell; 0 - wall cell)
-        self.w = np.ones(COLLOCATED_GRID, dtype=np.uint8)
-        self.w[1:-1, 1] = 0
-        self.w[1:-1, -2] = 0
-        self.w[1, 2:-2] = 0
-        self.w[-2, 2:-2] = 0
+        self.COLLOCATED_GRID = [self.num_cells, self.num_cells]
+        self.load_conditions(project)
         
         #   velocity field
-        self.u = np.zeros((self.num_cells, self.num_cells + 1), dtype=np.float64)
-        self.v = np.zeros((self.num_cells + 1, self.num_cells), dtype=np.float64)
         self.nu = np.zeros((self.num_cells, self.num_cells + 1), dtype=np.float64)
         self.nv = np.zeros((self.num_cells + 1, self.num_cells), dtype=np.float64)
         
-        #   divergence field
-        self.div = np.zeros(COLLOCATED_GRID, dtype=np.float64)
+        self.div = np.zeros(self.COLLOCATED_GRID, dtype=np.float64)     #   divergence field
+        self.ns = np.zeros(self.COLLOCATED_GRID, dtype=np.float64)      #   smoke field
+        self.p = np.zeros(self.COLLOCATED_GRID, dtype=np.float64)       #   pressure field
         
-        #  smoke field
-        self.s = np.zeros(COLLOCATED_GRID, dtype=np.float64)
-        self.ns = np.zeros(COLLOCATED_GRID, dtype=np.float64)
+        #   initial conditions
+        self.u0 = self.u.copy()
+        self.v0 = self.v.copy()
+        self.s0 = self.s.copy()
         
-        #   pressure field
-        self.p = np.zeros(COLLOCATED_GRID, dtype=np.float64)
-    
+    #   ==========[ INITIAL CONDITIONS ]==========
+    def save_conditions(self, project: Project) -> None:
+        save_project(project.path, self.u0, self.v0, self.s0, self.w)
+        
+    def load_conditions(self, project: Project) -> None:
+        
+        u, v, s, w = read_project(project.path)
+        #   velocity field
+        self.u = u if u is not None else np.zeros((self.num_cells, self.num_cells + 1), dtype=np.float64)
+        self.v = v if v is not None else np.zeros((self.num_cells + 1, self.num_cells), dtype=np.float64)
+        self.s = s if s is not None else np.zeros(self.COLLOCATED_GRID, dtype=np.float64)
+        if w is not None:
+            self.w = w
+        else:
+            #   wall cells  (1 - valid cell; 0 - wall cell)
+            self.w = np.ones(self.COLLOCATED_GRID, dtype=np.uint8)
+            self.w[1:-1, 1] = 0
+            self.w[1:-1, -2] = 0
+            self.w[1, 2:-2] = 0
+            self.w[-2, 2:-2] = 0
+                
     
     #   ==========[ UTILITIES ]==========        
     def hovered_cell(self, mouse_pos) -> tuple[int, int] | None:
@@ -69,10 +80,17 @@ class Grid:
         arr = arr.reshape(side // 2, 2, side).sum(axis=1)               #   merge every two rows by summing their respective column values  (shrink vertically)
         arr = arr.reshape(side // 2, side // 2, 2).sum(axis=-1)         #   for every new rows, sum every two values into one               (shrink horizontally)
         return self.shrink_field(0.25 * arr)
+
+    def reset(self) -> None:
+            
+        self.u[:, :] = self.u0
+        self.v[:, :] = self.v0
+        self.s[:, :] = self.s0
     
     #   ==========[ UPDATE ]==========
     def set_boundary_values(self) -> None:
-        free_slip_wall_check(self.num_cells, self.w, self.u, self.v, self.s)
+        np.clip(self.s, 0, 1, out=self.s)
+        free_slip_wall_check(self.num_cells, self.w, self.u, self.v)
     
     def calculate_divergence(self) -> None:
         get_divergence_field(self.num_cells, self.cell_size, self.w, self.u, self.v, self.div)
@@ -92,11 +110,11 @@ class Grid:
         semi_lagrangian_advect_smoke(self.dt, self.cell_size, self.num_cells, self.w, self.s, self.ns, self.u, self.v)
         self.s[:, :] = self.ns
         
-    def diffuse_smoke(self, iter, sor_weight) -> None:
-        smoke_diffusion(self.dt, self.num_cells, self.w, self.s, iter, sor_weight)
-    
-    def diffuse_velocities(self, iter, sor_weight) -> None:
-        velocity_diffusion(self.dt, self.num_cells, self.w, self.u, self.v, iter, sor_weight)
+    #def diffuse_smoke(self, iter, sor_weight) -> None:
+    #    smoke_diffusion(self.dt, self.num_cells, self.w, self.s, iter, sor_weight)
+    #
+    #def diffuse_velocities(self, iter, sor_weight) -> None:
+    #    velocity_diffusion(self.dt, self.num_cells, self.w, self.u, self.v, iter, sor_weight)
         
     #   ==========[ DRAW ]==========
     
@@ -130,12 +148,17 @@ class Grid:
     
     def get_walls_field_img(self, img:np.ndarray) -> None:
 
-        is_wall = self.w == 0
+        is_wall = self.w.T == 0
         img[is_wall] = config.hvr_clr
     
-    def get_smoke_field_img(self, img:np.ndarray) -> None:
+    def get_smoke_field_img(self, img:np.ndarray, initial=False) -> None:
         
-        s = self.s.copy().T
+        if not initial:
+            np.clip(self.s, 0, 1, out=self.s)
+            s = self.s.copy().T
+        else:
+            np.clip(self.s0, 0, 1, out=self.s0)
+            s = self.s0.copy().T
         if settings.theme_name == "light":
             s = 1 - s
         c = (255 * s).astype(np.uint8)
@@ -163,13 +186,16 @@ class Grid:
         weight = np.clip(1.5 * self.s, 0, 1).T if smoke_only else np.ones_like(p)
         img[:, :] = np.stack((r, g, b) * weight, axis=-1).astype(np.uint8)
 
-    def get_velocity_field_img(self, img:np.ndarray) -> None:
+    def get_velocity_field_img(self, img:np.ndarray, initial=False) -> None:
         
-        u = 0.5 * (self.u[:, :-1] + self.u[:, 1:])
-        v = 0.5 * (self.v[:-1, :] + self.v[1:, :])
+        u = self.u.copy() if not initial else self.u0.copy()
+        v = self.v.copy() if not initial else self.v0.copy()
+        
+        cu = 0.5 * (u[:, :-1] + u[:, 1:])
+        cv = 0.5 * (v[:-1, :] + v[1:, :])
 
-        nu, nv = self.shrink_field(u).T, self.shrink_field(v).T
-        factor = u.shape[0] / nu.shape[0]
+        nu, nv = self.shrink_field(cu).T, self.shrink_field(cv).T
+        factor = cu.shape[0] / nu.shape[0]
         vel = np.stack((-nv, nu)) / self.cell_size * self.cell_px  #  negate v for screen coordinates
         
         mag = np.zeros_like(nu)

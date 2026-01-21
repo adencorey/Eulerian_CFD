@@ -27,11 +27,7 @@ class EditProjectScreen:
         #   ==========[ PROJECT NAME ]==========
         self.proj_name_info = Info(name="proj_name_info", title="Project Name", pos=get_grid(10, 5), description="Name of the new project")
         self.proj_textbox = TextBox(name="proj_nme_tbx", rect=pg.Rect(get_grid(15, 7), tb_size), anchor="n", placeholder=self.app.project.name, max=30)
-        
-        #   ==========[ RESOLUTION ]==========
-        self.res_info = Info(name="res_info", title="Environment Resolution", pos=get_grid(10, 10), description="Number of cells on either side of the fluid environment (since it is a square). Time complexity is O(N^2) or worse. High performance load.")
-        self.res_sb = Slidebar(name="res_sb", rect=pg.Rect(get_grid(15, 12), sb_size), min_val=32, max_val=256, step=4, default=self.app.project.options["resolution"])
-        
+
         #   ==========[ GRAVITY STRENGTH SLIDEBAR ]==========
         self.grav_info = Info(name="grav_info", title="Gravity Strength", pos=get_grid(10, 15), description="Gravity strength of project environment, multiplier of acceleration due to gravity on Earth (9.81 ms^-2).")
         self.grav_sb = Slidebar(name="grav_sb", rect=pg.Rect(get_grid(15, 17), sb_size), min_val=-1, max_val=5, step=0.1, default=self.app.project.options["gravity"])
@@ -45,8 +41,8 @@ class EditProjectScreen:
         
         self.buttons: list[RectButton] = [self.canc_btn, self.save_btn]
         self.textboxes: list[TextBox] = [self.proj_textbox]
-        self.slidebars: list[Slidebar] = [self.res_sb, self.grav_sb]
-        self.infos: list[Info] = [self.proj_name_info, self.res_info, self.grav_info]
+        self.slidebars: list[Slidebar] = [self.grav_sb]
+        self.infos: list[Info] = [self.proj_name_info, self.grav_info]
 
         
     #   ==========[ EVENT HANDLING ]==========
@@ -100,7 +96,7 @@ class EditProjectScreen:
                     old_name = self.app.project.name
                     new_name = self.proj_textbox.get_input()
                     options = {
-                        "resolution": self.res_sb.value,
+                        "resolution": int(self.app.project.options["resolution"]),
                         "gravity": self.grav_sb.value
                     }
                     rename_project(old_name, new_name)
