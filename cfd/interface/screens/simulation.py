@@ -55,10 +55,6 @@ class SimulationScreen:
         #   ==========[ CONFIGURE ENVIRONMENT SCREEN ]==========
         self.clr_init_btn = RectButton(name="clr-init-btn", rect=pg.Rect(get_grid(2, 7), (int(0.18 * config.width), int(0.05 * config.height))), text="Clear Configurations")
         
-        self.brush_type = "Circular"
-        self.brush_type_info = Info(name="brush-type-info", title="Brush Type", pos=get_grid(2, 13))
-        self.brush_type_drp = Dropdown(name="brush-type-drp", rect=pg.Rect(get_grid(8, 13), drp_dim), options=["Circular", "Square"], setting=self.brush_type, anchor="w", font=config.font["par"])
-        
         self.vel_mag_info = Info(name="vel-mag-info", title="Velocity Magnitude", pos=get_grid(2, 16), description="Speed of fluid in that cell, measured in ms^-1.")
         self.vel_mag_sb = Slidebar(name="vel-mag-sb", rect=pg.Rect(get_grid(7, 18), sb_dim), min_val=1, max_val=50, step=1, default=5)
         
@@ -78,8 +74,7 @@ class SimulationScreen:
         self.debug_infos: list[Info] = [self.total_div, self.total_s, self.cell_type, self.cell_idx, self.cell_vel, self.cell_div, self.cell_s, self.cell_p]
         self.debug_chks: list[CheckBox] = [self.proj_field_chk, self.adv_field_chk]
         
-        self.config_infos: list[Info] = [self.brush_info, self.angle_info, self.vel_mag_info, self.brush_type_info]
-        self.config_drps: list[Dropdown] = [self.brush_type_drp]
+        self.config_infos: list[Info] = [self.brush_info, self.angle_info, self.vel_mag_info]
         self.config_sbs: list[Slidebar] = [self.brush_sb, self.vel_mag_sb]
         self.config_btns: list[RectButton] = [self.save_btn, self.cancel_btn, self.clr_init_btn]
         
@@ -93,7 +88,7 @@ class SimulationScreen:
         
     def _widgets(self) -> chain[Widget]:
         widgets = chain(self.drps, self.infos, self.sbs, self.chks, self.btns)
-        if self.configuring: return chain(self.config_drps, self.config_infos, self.config_sbs, self.config_btns)
+        if self.configuring: return chain(self.config_infos, self.config_sbs, self.config_btns)
         if self.shw_debug_chk.checked: return chain(widgets, self.debug_infos, self.debug_chks)
         return widgets
         
@@ -120,7 +115,7 @@ class SimulationScreen:
     def _handle_click(self) -> None:        
         
         #   if any open dropdown not being hovered close it
-        for dropdown in chain(self.drps, self.config_drps):
+        for dropdown in self.drps:
             if dropdown.show and self.app.hovering.id != dropdown.id: dropdown.show = False
         if not self.app.hovering.name: return
         
@@ -133,10 +128,6 @@ class SimulationScreen:
         elif self.dsp_field_drp.hovering.name:
             self.dsp_field = self.dsp_field_drp.hovering.text
             self.dsp_field_drp.clicked(self.dsp_field)
-        
-        elif self.brush_type_drp.hovering.name:
-            self.brush_type = self.brush_type_drp.hovering.text
-            self.brush_type_drp.clicked(self.brush_type)
             
         elif self.app.hovering.id == self.config_env.id:
             self.shw_debug_chk.checked = False
@@ -196,36 +187,39 @@ class SimulationScreen:
         
         weight = 1 - (np.hypot(x - i, y - j) / radius)
         np.clip(weight, 0, 1, out=weight)
-        if self.brush_type == "Square":
-            weight = np.ones_like(weight)
+        brush_area = slice(i_start, i_end), slice(j_start, j_end)
         
         if not self.configuring:
             if left:
                 rx, ry = mouse_rel
                 k = self.grid.cell_size / self.grid.cell_px / self.grid.dt * weight
-                self.grid.u[i_start:i_end, j_start:j_end] += k * rx
-                self.grid.v[i_start:i_end, j_start:j_end] -= k * ry
+                self.grid.u[brush_area] += k * rx
+                self.grid.v[brush_area] -= k * ry
             
             if right:
-                self.grid.s[i_start:i_end, j_start:j_end] += weight
+                self.grid.s[brush_area] += weight
                 np.clip(self.grid.s, 0, 1, out=self.grid.s)
         
         else:
-            if mid or (left and shift):
-                self.grid.w[i_start:i_end, j_start:j_end] *= 1 - np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
+            if mid or (shift and left):
+                self.grid.w[brush_area] *= 1 - np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
+                np.clip(self.grid.w, 0, 1, out=self.grid.w)
+            
+            elif shift and right:
+                self.grid.u0[brush_area] = self.grid.v0[brush_area] = self.grid.s0[brush_area] = 0
+                self.grid.w[brush_area] += np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
                 np.clip(self.grid.w, 0, 1, out=self.grid.w)
             
             else:
+                weight = np.ones_like(weight)
                 if left:
                     rad = np.deg2rad(self.angle)
-                    self.grid.u0[i_start:i_end, j_start:j_end] = self.vel_mag_sb.value * np.cos(rad) * weight
-                    self.grid.v0[i_start:i_end, j_start:j_end] = self.vel_mag_sb.value * np.sin(rad) * weight
+                    self.grid.u0[brush_area] = self.vel_mag_sb.value * np.cos(rad) * weight
+                    self.grid.v0[brush_area] = self.vel_mag_sb.value * np.sin(rad) * weight
                 
                 if right:
-                    self.grid.s0[i_start:i_end, j_start:j_end] += np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
+                    self.grid.s0[brush_area] += np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
                     np.clip(self.grid.s0, 0, 1, out=self.grid.s0)
-            
-            
             
         
     def handle_events(self, event: pg.event.Event) -> None:
@@ -247,13 +241,12 @@ class SimulationScreen:
             for sb in chain(self.sbs, self.config_sbs):
                 if sb.dragging: sb.dragging = False
         
-        if not (keys[pg.K_z] and keys[pg.K_x]):
-            if keys[pg.K_z]: self.angle = (self.angle + 5) % 360
-            if keys[pg.K_x]: self.angle = (self.angle - 5) % 360
-        
         if event.type == pg.KEYDOWN:
-            if event.key == pg.K_SPACE:
-                self.wind_tunnel = not self.wind_tunnel
+            if event.key == pg.K_z: self.angle = (self.angle + 15) % 360
+            if event.key == pg.K_x: self.angle = (self.angle - 15) % 360
+            if event.key == pg.K_a: self.angle = (self.angle + 5) % 360
+            if event.key == pg.K_s: self.angle = (self.angle - 5) % 360
+        
     
     
     #   ==========[ UPDATE ]==========
@@ -318,19 +311,14 @@ class SimulationScreen:
             #   1. add external sources
             #self.grid.v[1:-1, 1:-1] += self.dt * -9.81      #   gravity
 
-            
-            if self.wind_tunnel:
-                self.grid.u[0:2, 1:-1] = 15
-                self.grid.s[0, self.grid.num_cells//2-int(self.grid.scale):self.grid.num_cells//2+int(self.grid.scale)+1] = 1
-            
             init_smoke = self.grid.s0 > 0
             self.grid.s[init_smoke] = self.grid.s0[init_smoke]
             
             init_u = self.grid.u0 > 0
-            self.grid.u[init_u] += self.grid.u0[init_u]
+            self.grid.u[init_u] += self.grid.u0[init_u] * self.grid.dt
             
             init_v = self.grid.v0 > 0
-            self.grid.v[init_v] += self.grid.v0[init_v]
+            self.grid.v[init_v] += self.grid.v0[init_v] * self.grid.dt
             
             self.grid.set_boundary_values()
             
@@ -380,7 +368,7 @@ class SimulationScreen:
                 continue
             widget.draw(screen)
             
-        for dropdown in chain(self.drps, self.config_drps):
+        for dropdown in self.drps:
             if dropdown.show:
                 dropdown.draw_children(screen)
                 break                

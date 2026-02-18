@@ -10,7 +10,7 @@ from cfd.helpers.screen import get_grid, TITLE_POS
 
 logger = logging.getLogger(__name__)
 
-class CreateProjectScreen:
+class ControlScreen:
     
     def __init__(self, app) -> None:
         from cfd.app import App
@@ -21,9 +21,13 @@ class CreateProjectScreen:
         sb_size = int(0.25 * config.width), int(0.01 * config.height)
 
         #   ==========[ TITLE ]==========
-        self.title_surf = config.font["title"].render("Create Project", True, config.main_clr)
+        self.title_surf = config.font["title"].render("Controls", True, config.main_clr)
         
-        #   ==========[ PROJECT NAME ]==========
+        #   ==========[ SIMULATION ]==========
+        self.0
+        
+        
+        
         self.proj_name_info = Info(name="proj_name_info", title="Project Name", pos=get_grid(10, 5), description="")
         self.proj_textbox = TextBox(name="proj_nme_tbx", rect=pg.Rect(get_grid(15, 7), tb_size), anchor="n", placeholder="New Project", max=30)
         

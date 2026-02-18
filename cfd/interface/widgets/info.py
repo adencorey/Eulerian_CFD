@@ -10,19 +10,19 @@ class Info(Widget):
         super().__init__(name=name, rect=pg.Rect(pos, (0, 0)), font=font)
         
         self.title = title
-        self.line_max = line_max
-        self.description = self.break_description(description) if description else None
+        self._line_max = line_max
+        self._description = self.break_description(description) if description else None
         
         self.pos = self.rect.topleft
-        self.desc_font = desc_font
-        self.radius = 0.4 * self.font.get_height()
-        self.padding = self.border * np.array((10, 5))
+        self._desc_font = desc_font
+        self._radius = 0.4 * self._font.get_height()
+        self._padding = self._border * np.array((10, 5))
         self.update()
         
     
     #   ==========[ UTILS ]==========
     def collide(self, mouse_pos) -> True | False:
-        return (self.btn_center[0] - mouse_pos[0]) ** 2 + (self.btn_center[1] - mouse_pos[1]) ** 2 <= self.radius ** 2 if self.description else False
+        return (self.btn_center[0] - mouse_pos[0]) ** 2 + (self.btn_center[1] - mouse_pos[1]) ** 2 <= self._radius ** 2 if self._description else False
     
     def break_description(self, description:str) -> list[str]:
         """splits description into multiple lines if needed"""
@@ -30,16 +30,16 @@ class Info(Widget):
         #   word length check
         words = description.split()
         for word in words:
-            if len(word) > self.line_max:
-                raise ValueError(f"All words must be within {self.line_max} letters ({word})")
+            if len(word) > self._line_max:
+                raise ValueError(f"All words must be within {self._line_max} letters ({word})")
         
         break_idx = []
-        i = self.line_max - 1
+        i = self._line_max - 1
         while True:
             if i > len(description) - 1: break      #   break when reaches end of description
             while description[i] != " ": i -= 1     #   snap index to nearest whitespace at line break
             break_idx.append(i)
-            i += self.line_max
+            i += self._line_max
         lst = list(description)
         for idx in break_idx:
             lst[idx] = "\n"
@@ -50,13 +50,13 @@ class Info(Widget):
         """returns a suitable position for description box that avoids overflowing texts outside screen border"""
         
         px, py = self.btn_center
-        num_lines = len(self.description)
+        num_lines = len(self._description)
         
         #   get dimension of description box
-        placeholder = self.description[0] if num_lines == 1 else self.line_max * "'/"
-        w, h = self.desc_font.size(placeholder)
+        placeholder = self._description[0] if num_lines == 1 else self._line_max * "'/"
+        w, h = self._desc_font.size(placeholder)
         h *= num_lines
-        w, h = self.padding + np.array((w, h))
+        w, h = self._padding + np.array((w, h))
         
         #   determine anchor
         px -= w
@@ -67,18 +67,18 @@ class Info(Widget):
         
     #   ==========[ UPDATE ]==========
     def _update_colours(self) -> None:
-        self.main_clr, self.bg_clr = config.main_clr, config.bg_clr
+        self._main_clr, self._bg_clr = config.main_clr, config.bg_clr
             
     def _update_text(self) -> None:
         
-        self.title_surf = self.font.render(self.title, True, self.main_clr)
-        self.title_rect = self.title_surf.get_rect(left=self.rect.left + 3 * self.radius, centery=self.rect.centery)
-        self.btn_center = (self.rect.left + 1.5 * self.radius, self.title_rect.centery)
+        self._title_surf = self._font.render(self.title, True, self._main_clr)
+        self._title_rect = self._title_surf.get_rect(left=self.rect.left + 3 * self._radius, centery=self.rect.centery)
+        self.btn_center = (self.rect.left + 1.5 * self._radius, self._title_rect.centery)
         
-        if self.description:
-            self.desc_rect = pg.Rect(self.get_desc_pos())
-            self.symbol_surf = self.desc_font.render("?", True, self.main_clr)
-            self.symbol_rect = self.symbol_surf.get_rect(center=self.btn_center)
+        if self._description:
+            self._desc_rect = pg.Rect(self.get_desc_pos())
+            self._symbol_surf = self._desc_font.render("?", True, self._main_clr)
+            self._symbol_rect = self._symbol_surf.get_rect(center=self.btn_center)
 
     def update(self, *args, **kwargs) -> None:
         self._update_colours()
@@ -88,26 +88,26 @@ class Info(Widget):
     #   ==========[ DRAW ]==========   
     def _draw_text(self, screen:pg.Surface) -> None:
         
-        screen.blit(self.title_surf, self.title_rect)
-        if self.description: screen.blit(self.symbol_surf, self.symbol_rect)
+        screen.blit(self._title_surf, self._title_rect)
+        if self._description: screen.blit(self._symbol_surf, self._symbol_rect)
             
     def draw_description(self, screen:pg.Surface) -> None:
         
         #   draw background
-        pg.draw.rect(screen, self.bg_clr, self.desc_rect)
-        pg.draw.rect(screen, self.main_clr, self.desc_rect, self.border)
+        pg.draw.rect(screen, self._bg_clr, self._desc_rect)
+        pg.draw.rect(screen, self._main_clr, self._desc_rect, self._border)
         
         #   draw texts
-        topleft = self.desc_rect.topleft + 0.5 * self.padding
-        for i, line in enumerate(self.description):
-            surf = self.desc_font.render(line, True, self.main_clr)
-            pos = topleft + self.desc_font.get_height() * i * np.array((0, 1))
+        topleft = self._desc_rect.topleft + 0.5 * self._padding
+        for i, line in enumerate(self._description):
+            surf = self._desc_font.render(line, True, self._main_clr)
+            pos = topleft + self._desc_font.get_height() * i * np.array((0, 1))
             rect = surf.get_rect(topleft=pos)
             screen.blit(surf, rect)
     
     def draw(self, screen:pg.Surface) -> None:
         
-        if self.description:
-            pg.draw.circle(screen, self.bg_clr, self.btn_center, self.radius)
-            pg.draw.circle(screen, self.main_clr, self.btn_center, self.radius, int(0.07 * self.desc_font.get_height()))
+        if self._description:
+            pg.draw.circle(screen, self._bg_clr, self.btn_center, self._radius)
+            pg.draw.circle(screen, self._main_clr, self.btn_center, self._radius, int(0.07 * self._desc_font.get_height()))
         self._draw_text(screen)

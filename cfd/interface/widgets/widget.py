@@ -8,12 +8,12 @@ class Widget:
         
         self.name, self.id = registry.register(name) if name else (None, None)
         self.rect = rect
-        self.anchor = anchor
+        self._anchor = anchor
         self.set_anchor()
         self.text = text
-        self.font = font if font else config.font["body"]
-        self.border = int(0.07 * self.font.get_height())
-        self.main_clr, self.bg_clr = colours if colours else config.main_clr, config.bg_clr
+        self._font = font if font else config.font["body"]
+        self._border = int(0.07 * self._font.get_height())
+        self._main_clr, self._bg_clr = colours if colours else config.main_clr, config.bg_clr
           
         
     #   ==========[ UTILS ]==========
@@ -23,7 +23,7 @@ class Widget:
     def set_anchor(self) -> None:
         
         pos = self.rect.topleft
-        match self.anchor:
+        match self._anchor:
             case "center": self.rect.center = pos
             case "ne": self.rect.topright = pos
             case "se": self.rect.bottomright = pos
@@ -32,23 +32,23 @@ class Widget:
             case "e": self.rect.right, self.rect.centery = pos
             case "s": self.rect.centerx, self.rect.bottom = pos
             case "w": self.rect.left, self.rect.centery = pos
-            case _: pass          
+            case _: pass
     
 
     #   ==========[ UPDATE ]==========
     def _update_colours(self, hvr_id:int, hl_id:int) -> None:
 
         if self.id == hl_id:
-            self.main_clr, self.bg_clr = config.secondary_clr, config.bg_clr
+            self._main_clr, self._bg_clr = config.secondary_clr, config.bg_clr
         elif self.id == hvr_id:
-            self.main_clr, self.bg_clr = config.hl_clr, config.hvr_clr
+            self._main_clr, self._bg_clr = config.hl_clr, config.hvr_clr
         else:
-            self.main_clr, self.bg_clr = config.main_clr, config.bg_clr
+            self._main_clr, self._bg_clr = config.main_clr, config.bg_clr
             
     def _update_text(self) -> None:
         
-        self.text_surf = self.font.render(self.text, True, self.main_clr)
-        self.text_rect = self.text_surf.get_rect(center=self.rect.center)
+        self._text_surf = self._font.render(self.text, True, self._main_clr)
+        self._text_rect = self._text_surf.get_rect(center=self.rect.center)
         
     def update(self, hvr_id:int, hl_id:int) -> None:
 
@@ -58,16 +58,15 @@ class Widget:
     
     #   ==========[ DRAW ]==========
     def _draw_text(self, screen:pg.Surface) -> None:
-        if self.text: screen.blit(self.text_surf, self.text_rect)
+        if self.text: screen.blit(self._text_surf, self._text_rect)
     
     def draw(self, screen:pg.Surface) -> None:
         
-        pg.draw.rect(screen, self.bg_clr, self.rect)
-        pg.draw.rect(screen, self.main_clr, self.rect, self.border)
+        pg.draw.rect(screen, self._bg_clr, self.rect)
+        pg.draw.rect(screen, self._main_clr, self.rect, self._border)
         self._draw_text(screen)
     
 class NullWidget:
-    
     id = None
     name = None
 NULLWIDGET = NullWidget()

@@ -61,6 +61,7 @@ class App:
         elif screen_id == Screens.SETTINGS.value:
             self.current_screen = SettingsScreen(self)
         elif screen_id == Screens.SIMULATION.value:
+            self.tool_bar.highlighted = NULLWIDGET
             self.current_screen = SimulationScreen(self)
                 
     #   mainloop

@@ -15,15 +15,15 @@ class Dropdown(Widget):
         self.show = False
         self.hovering: DropdownChild = NULLWIDGET
         
-        self.arrow_rect = pg.Rect(self.rect.topright, (int(0.8 * self.rect.height), self.rect.height))
+        self._arrow_rect = pg.Rect(self.rect.topright, (int(0.8 * self.rect.height), self.rect.height))
         
-        self.children: list[DropdownChild] = []
+        self._children: list[DropdownChild] = []
         for i in range(len(options)):
-            self.children.append(DropdownChild(
+            self._children.append(DropdownChild(
                 name=f"{self.name}.{options[i]}",
                 rect=rect.copy().move(0, (i + 1) * rect.height),
                 text=options[i].capitalize(),
-                font=self.font
+                font=self._font
             ))
     
     #   ==========[ UTILITIES ]==========
@@ -32,7 +32,7 @@ class Dropdown(Widget):
         return str(setting).capitalize()
     
     def collide(self, mouse_pos) -> True | False:
-        if self.rect.collidepoint(mouse_pos) or self.arrow_rect.collidepoint(mouse_pos):
+        if self.rect.collidepoint(mouse_pos) or self._arrow_rect.collidepoint(mouse_pos):
             self.hovering = NULLWIDGET
             return True
         return False
@@ -40,7 +40,7 @@ class Dropdown(Widget):
     def collide_children(self, mouse_pos) -> True | False:
         
         if self.show:
-            for child in self.children:
+            for child in self._children:
                 if child.collide(mouse_pos):
                     self.hovering = child
                     return True
@@ -57,21 +57,21 @@ class Dropdown(Widget):
     def update(self, hvr_id, hl_id):
         
         super().update(hvr_id, -1)
-        for child in self.children:
+        for child in self._children:
             child.update(self.hovering.name, "None")
 
 
     #   ==========[ DRAW ]==========
     def _draw_arrow(self, screen:pg.Surface) -> None:
         
-        center = np.array(self.arrow_rect.center, dtype=np.float16)
+        center = np.array(self._arrow_rect.center, dtype=np.float16)
         
         #   rect
-        pg.draw.rect(screen, self.bg_clr, self.arrow_rect)
-        pg.draw.rect(screen, self.main_clr, self.arrow_rect, self.border)
+        pg.draw.rect(screen, self._bg_clr, self._arrow_rect)
+        pg.draw.rect(screen, self._main_clr, self._arrow_rect, self._border)
         
         #   arrow
-        len = int(0.25 * self.arrow_rect.height)
+        len = int(0.25 * self._arrow_rect.height)
         sign = -1 if self.show else 1
         points = []
         for i in range(3):
@@ -79,11 +79,11 @@ class Dropdown(Widget):
             coord = center + len * np.array((np.sin(rad), sign * np.cos(rad)), dtype=np.float16)
             points.append(coord.astype(np.int16))
             
-        pg.draw.polygon(screen, self.main_clr, points)
+        pg.draw.polygon(screen, self._main_clr, points)
     
     def draw_children(self, screen:pg.Surface) -> None:
         
-        for child in self.children:
+        for child in self._children:
             child.draw(screen)
     
     def draw_parent(self, screen:pg.Surface) -> None:
@@ -101,8 +101,8 @@ class DropdownChild(Widget):
     def _update_colours(self, hvr_name, hl_name):
 
         if self.name == hl_name:
-            self.main_clr, self.bg_clr = config.secondary_clr, config.bg_clr
+            self._main_clr, self._bg_clr = config.secondary_clr, config.bg_clr
         elif self.name == hvr_name:
-            self.main_clr, self.bg_clr = config.hl_clr, config.hvr_clr
+            self._main_clr, self._bg_clr = config.hl_clr, config.hvr_clr
         else:
-            self.main_clr, self.bg_clr = config.main_clr, config.bg_clr
+            self._main_clr, self._bg_clr = config.main_clr, config.bg_clr

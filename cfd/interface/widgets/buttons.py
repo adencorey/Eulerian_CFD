@@ -29,15 +29,15 @@ class RectButton(Widget):
     def _update_text(self):
         super()._update_text()
         if self.confirm:
-            self.text_surf = self.font.render("Confirm", True, self.main_clr)
-            self.text_rect = self.text_surf.get_rect(center=self.rect.center)
+            self._text_surf = self._font.render("Confirm", True, self._main_clr)
+            self._text_rect = self._text_surf.get_rect(center=self.rect.center)
 
     def _update_colours(self, hvr_id, hl_id):
         super()._update_colours(hvr_id, hl_id)
         if self.confirm:
-            self.main_clr = (255, 0, 0)
+            self._main_clr = (255, 0, 0)
         if self.disabled:
-            self.main_clr, self.bg_clr = config.hvr_clr, config.bg_clr
+            self._main_clr, self._bg_clr = config.hvr_clr, config.bg_clr
         
 
 #   ==========[ WINDOW BUTTON ]==========
@@ -49,11 +49,11 @@ class WindowButton(RectButton):
     def _update_colours(self, hvr_id:int, hl_id:int) -> None:
         
         super()._update_colours(hvr_id, hl_id)
-        if hvr_id == self.id and self.id == registry.ids["quit_btn"]: self.bg_clr = (255, 0, 0)
+        if hvr_id == self.id and self.id == registry.ids["quit_btn"]: self._bg_clr = (255, 0, 0)
         
     def draw(self, screen: pg.Surface) -> None:
         
-        pg.draw.rect(screen, self.bg_clr, self.rect)
+        pg.draw.rect(screen, self._bg_clr, self.rect)
         super()._draw_text(screen)
 
 #   ==========[ SIDEBAR BUTTON ]==========
@@ -63,17 +63,17 @@ class SideBarButton(Widget):
         super().__init__(name=name, rect=rect, anchor=anchor, text="?")
         
         self.center = rect.center
-        self.radius = int(0.45 * self.rect.width)
-        self.size = 0.6 * np.array(rect.size)
+        self._radius = int(0.45 * self.rect.width)
+        self._size = 0.6 * np.array(rect.size)
         self.hovering = False
         
         #   load and scale image
         self.image: pg.Surface = load_image(image)
-        self.scaled_image = pg.transform.scale(self.image, self.size) if self.image else None
+        self.scaled_image = pg.transform.scale(self.image, self._size) if self.image else None
         if self.scaled_image:
             self.rect = self.scaled_image.get_rect(center=self.center)
         else:
-            self.rect = pg.Rect((0, 0), self.size)
+            self.rect = pg.Rect((0, 0), self._size)
             self.rect.center = self.center
             
     
@@ -86,18 +86,18 @@ class SideBarButton(Widget):
 
     def draw(self, screen:pg.Surface) -> None:
         
-        if self.hovering: pg.draw.circle(screen, self.bg_clr, self.center, self.radius)
+        if self.hovering: pg.draw.circle(screen, self._bg_clr, self.center, self._radius)
         
         if self.scaled_image: 
-            image: pg.Surface = recolour_image(self.scaled_image.copy(),  (0, 0, 0), self.main_clr)
+            image: pg.Surface = recolour_image(self.scaled_image.copy(),  (0, 0, 0), self._main_clr)
             screen.blit(image, self.rect)
         else:
             #   draw "?" if image file is missing
-            pg.draw.rect(screen, self.main_clr, self.rect, 1)
+            pg.draw.rect(screen, self._main_clr, self.rect, 1)
             self._draw_text(screen)
         
     def collide(self, mouse_pos) -> True | False:
-        return (self.center[0] - mouse_pos[0]) ** 2 + (self.center[1] - mouse_pos[1]) ** 2 <= (self.radius) ** 2
+        return (self.center[0] - mouse_pos[0]) ** 2 + (self.center[1] - mouse_pos[1]) ** 2 <= (self._radius) ** 2
     
 
 #   ==========[ PROJECT BUTTONS ]==========
@@ -107,8 +107,8 @@ class ProjectButton(Widget):
         super().__init__(name=name, rect=rect, text=project.name, font=config.font["head"])
         
         self.project = project
-        self.sub_font = config.font["sub"]
-        self.offset = int(0.1 * self.rect.height)
+        self._sub_font = config.font["sub"]
+        self._offset = int(0.1 * self.rect.height)
         self.double_click = False
         
     def toggle_double_click(self) -> Generator:
@@ -121,18 +121,18 @@ class ProjectButton(Widget):
     def _update_text(self):
         super()._update_text()
         
-        self.text_rect = self.text_surf.get_rect(topleft=self.rect.topleft + self.offset * np.array((1, 1)))
-        self.sub_texts: list = []
+        self._text_rect = self._text_surf.get_rect(topleft=self.rect.topleft + self._offset * np.array((1, 1)))
+        self._sub_texts: list = []
         i = 0
         for key, val in self.project.metadata.items():
             text = f"{key.replace('_', ' ')}: {val}"
-            surf = self.sub_font.render(text, True, self.main_clr)
-            rect = surf.get_rect(bottomleft=self.rect.bottomleft + self.offset * np.array((1 + i, -1)))
-            self.sub_texts.append((surf, rect))
+            surf = self._sub_font.render(text, True, self._main_clr)
+            rect = surf.get_rect(bottomleft=self.rect.bottomleft + self._offset * np.array((1 + i, -1)))
+            self._sub_texts.append((surf, rect))
             i += 50
     
     def _draw_text(self, screen):
         super()._draw_text(screen)
         
-        for surf, rect in self.sub_texts:
+        for surf, rect in self._sub_texts:
             screen.blit(surf, rect)

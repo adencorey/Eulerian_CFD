@@ -96,14 +96,19 @@ def bilerp(field:np.ndarray[np.float64], floor:tuple[np.int16], fract:tuple[np.f
 @njit("Tuple((int16, float64))(uint16, uint16, float64)", cache=True, inline="always")
 def clamp_index(num_cells:int, floor:np.int16, fract:np.float64) -> tuple[np.int16, np.float64]:
     """clamp index and proportion to staggered grid format"""
+    
     if fract < 0.5:
         floor -= 1
         fract += 0.5
     else:
         fract -= 0.5
+        
     # Clamp to valid interpolation range [0, num_cells-1]
-    if floor < 0: floor = 0
-    elif floor >= num_cells - 1: floor = num_cells - 1
+    if floor < 0: 
+        floor = 0
+    elif floor >= num_cells - 1: 
+        floor = num_cells - 1
+        
     return floor, fract
 
 @njit("Tuple((int16[:], float64[:]))(float64[:])", cache=True, inline="always")
@@ -136,8 +141,8 @@ def get_smoke_at_pos(num_cells:int, s:np.ndarray[np.float64], idx:np.ndarray[np.
     """get smoke density at a any arbitrary position"""
 
     (i, j), (fi, fj) = split_index(idx)
-    i, fi = clamp_index(num_cells, i, fi)
-    j, fj = clamp_index(num_cells, j, fj)
+    #i, fi = clamp_index(num_cells, i, fi)
+    #j, fj = clamp_index(num_cells, j, fj)
     return bilerp(s, (i, j), (fi, fj))
 
 @njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True, fastmath=True)
@@ -161,9 +166,7 @@ def semi_lagrangian_advect_velocity(dt:float, cell_size:float, num_cells:int, w:
     #   advect vertical velocities
     for i in prange(1, num_cells):
         for j in prange(1, num_cells - 1):
-            if w[i, j] == 0 or w[i-1, j] == 0: 
-                nv[i, j] = 0
-                continue
+            if w[i, j] == 0 or w[i-1, j] == 0: nv[i, j] = 0; continue
             
             #   get velocity at horizontal cell face
             old_idx = np.array([i, j+0.5])
@@ -181,9 +184,7 @@ def semi_lagrangian_advect_smoke(dt:float, cell_size:float, num_cells:int, w:np.
     k = dt / cell_size
     for i in prange(1, num_cells - 1):
         for j in prange(1, num_cells - 1):
-            if w[i, j] == 0: 
-                ns[i, j] = 0
-                continue
+            if w[i, j] == 0: ns[i, j] = 0; continue
             
             #   get velocity at cell center
             old_idx = np.array((i, j)) + 0.5
