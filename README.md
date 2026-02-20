@@ -21,7 +21,7 @@ Make sure Python is installed on your computer. You can download it from the off
 
 Open Command Prompt (Windows) or Terminal (Mac / Linux) and paste the following. This downloads all the necessary files into your computer.
 ```
-git clone https://github.com/yourusername/yourrepo.git](https://github.com/adencorey/Eulerian_CFD.git
+git clone https://github.com/adencorey/Eulerian_CFD.git
 cd Eulerian_CFD
 ```
 ## 2. Create virtual environment
