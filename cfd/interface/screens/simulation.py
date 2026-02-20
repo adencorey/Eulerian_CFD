@@ -19,6 +19,9 @@ class SimulationScreen:
         self.app: App = app
         
         self.title_surf = config.font["title"].render("Simulation", True, config.main_clr)
+        self.control_surf = config.font["sub"].render("Add velocity - LMB drag    Add smoke - RMB drag", True, config.hvr_clr)
+        self.wall_surf = config.font["sub"].render("Add Wall - Shift + LMB drag", True, config.hvr_clr)
+        self.angle_surf = config.font["sub"].render("Rotate - Mousewheel (Z / X)", True, config.hvr_clr)
         self.grid = Grid(app.project)
                 
         drp_dim = (int(0.1 * config.width), int(0.04 * config.height))
@@ -36,7 +39,7 @@ class SimulationScreen:
         
         self.shw_debug_chk = CheckBox(name="shw-debug-chk", pos=get_grid(2, 11.5), text="Show debug screen")
         
-        self.config_env = RectButton(name="config-env-btn", rect=pg.Rect(get_grid(2, 25), (int(0.18 * config.width), int(0.05 * config.height))), text="Configure Environment")
+        self.config_env = RectButton(name="config-env-btn", rect=pg.Rect(get_grid(2, 24), (int(0.18 * config.width), int(0.05 * config.height))), text="Configure Environment")
         
         #   ==========[ DEBUG SCREEN ]==========
         self.total_div = Info(name="total_div_info", title="Total Divergence: 0", pos=get_grid(2, 14), description="Sum of magnitude of divergence of all cells, simulation will be less accurate if this number is huge. Divergence of a cell is how much velocity field diverge or converge around it", font=config.font["sub"], desc_font=config.font["sml"])
@@ -61,8 +64,8 @@ class SimulationScreen:
         self.angle = 0
         self.angle_info = Info(name="angle-info", title="Velocity Direction: 0 deg", pos=get_grid(2, 21), description="Angle of velocity in degrees, measured from positive horizontal (right) and increases anti-clockwise.")
         
-        self.save_btn = RectButton(name="save-env-btn", rect=pg.Rect(get_grid(2, 25), btn_dim), text="Save")
-        self.cancel_btn = RectButton(name="cancel-env-btn", rect=pg.Rect(get_grid(7, 25), btn_dim), text="Cancel")
+        self.save_btn = RectButton(name="save-env-btn", rect=pg.Rect(get_grid(2, 24), btn_dim), text="Save")
+        self.cancel_btn = RectButton(name="cancel-env-btn", rect=pg.Rect(get_grid(7, 24), btn_dim), text="Cancel")
         
         
         self.infos: list[Info] = [self.dsp_field_info, self.brush_info]
@@ -211,11 +214,10 @@ class SimulationScreen:
                 np.clip(self.grid.w, 0, 1, out=self.grid.w)
             
             else:
-                weight = np.ones_like(weight)
                 if left:
                     rad = np.deg2rad(self.angle)
-                    self.grid.u0[brush_area] = self.vel_mag_sb.value * np.cos(rad) * weight
-                    self.grid.v0[brush_area] = self.vel_mag_sb.value * np.sin(rad) * weight
+                    self.grid.u0[brush_area] = self.vel_mag_sb.value * np.cos(rad) * np.ones_like(weight)
+                    self.grid.v0[brush_area] = self.vel_mag_sb.value * np.sin(rad) * np.ones_like(weight)
                 
                 if right:
                     self.grid.s0[brush_area] += np.clip((weight * radius * 2), 0, 1).astype(np.uint8)
@@ -242,10 +244,11 @@ class SimulationScreen:
                 if sb.dragging: sb.dragging = False
         
         if event.type == pg.KEYDOWN:
-            if event.key == pg.K_z: self.angle = (self.angle + 15) % 360
-            if event.key == pg.K_x: self.angle = (self.angle - 15) % 360
-            if event.key == pg.K_a: self.angle = (self.angle + 5) % 360
-            if event.key == pg.K_s: self.angle = (self.angle - 5) % 360
+            if event.key == pg.K_z: self.angle = (self.angle + 1) % 360
+            if event.key == pg.K_x: self.angle = (self.angle - 1) % 360
+            
+        if event.type == pg.MOUSEWHEEL:
+            self.angle = (self.angle + 5 * event.y) % 360
         
     
     
@@ -309,17 +312,7 @@ class SimulationScreen:
             sor = settings.sor_weight
                     
             #   1. add external sources
-            #self.grid.v[1:-1, 1:-1] += self.dt * -9.81      #   gravity
-
-            init_smoke = self.grid.s0 > 0
-            self.grid.s[init_smoke] = self.grid.s0[init_smoke]
-            
-            init_u = self.grid.u0 > 0
-            self.grid.u[init_u] += self.grid.u0[init_u] * self.grid.dt
-            
-            init_v = self.grid.v0 > 0
-            self.grid.v[init_v] += self.grid.v0[init_v] * self.grid.dt
-            
+            self.grid.add_external_forces()            
             self.grid.set_boundary_values()
             
             #   2. move smoke and velocity around
@@ -327,7 +320,6 @@ class SimulationScreen:
                 self.grid.advect_smoke()
                 self.grid.advect_velocities()
                 np.clip(self.grid.s, 0, 1, out=self.grid.s)
-                
             
             #   3. clears out divergence to enforce incompressibility
             self.grid.calculate_divergence()
@@ -336,8 +328,6 @@ class SimulationScreen:
 
             self.grid.set_boundary_values()
         
-            
-            
         #   4. update screen  
         self.grid.calculate_divergence()
         self._update_screen()
@@ -359,9 +349,13 @@ class SimulationScreen:
         
     def draw(self, screen:pg.Surface) -> None:
         
-        screen.blit(self.title_surf, TITLE_POS)     #   draw title
+        screen.blit(self.title_surf, TITLE_POS)                             #   title
+        screen.blit(self.control_surf, get_grid(2, 26))                     #   controls
+        if self.configuring:
+            screen.blit(self.wall_surf, get_grid(2, 27))                    #   wall
+            screen.blit(self.angle_surf, get_grid(2, 22))                   #   angle
         self.draw_grid(screen)
-        
+
         for widget in self._widgets():
             if isinstance(widget, Dropdown):
                 widget.draw_parent(screen)
@@ -377,3 +371,11 @@ class SimulationScreen:
             if self.app.hovering.id == info.id:
                 info.draw_description(screen)
                 break
+            
+        #   draw angle indicator
+        if self.configuring and self.hover_idx is not None:
+            rad = np.deg2rad(self.angle)
+            length = 0.1 * self.grid.env_length / self.grid.cell_size * self.grid.cell_px
+            start = pg.mouse.get_pos()
+            end = np.array(start) + length * np.array([np.cos(rad), -np.sin(rad)])
+            pg.draw.line(screen, (0, 150, 255), start, end, int(length / 20))

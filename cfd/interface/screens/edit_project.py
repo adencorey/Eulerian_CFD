@@ -28,21 +28,29 @@ class EditProjectScreen:
         self.proj_name_info = Info(name="proj_name_info", title="Project Name", pos=get_grid(10, 5), description="Name of the new project")
         self.proj_textbox = TextBox(name="proj_nme_tbx", rect=pg.Rect(get_grid(15, 7), tb_size), anchor="n", placeholder=self.app.project.name, max=30)
 
+        #   ==========[ ENVIRONMENT LENGTH SLIDEBAR ]==========
+        self.len_info = Info(name="len_info", title="Environement Length", pos=get_grid(10, 13), description="Length of the fluid environment in meters.")
+        self.len_sb = Slidebar(name="len_sb", rect=pg.Rect(get_grid(15, 14), sb_size), min_val=1, max_val=100, step=1, default=self.app.project.options["length"])
+        
         #   ==========[ GRAVITY STRENGTH SLIDEBAR ]==========
         self.grav_info = Info(name="grav_info", title="Gravity Strength", pos=get_grid(10, 15), description="Gravity strength of project environment, multiplier of acceleration due to gravity on Earth (9.81 ms^-2).")
         self.grav_sb = Slidebar(name="grav_sb", rect=pg.Rect(get_grid(15, 17), sb_size), min_val=-1, max_val=5, step=0.1, default=self.app.project.options["gravity"])
         
+        #   ==========[ DENSITY SLIDEBAR ]==========
+        self.density_info = Info(name="density_info", title="Fluid Density", pos=get_grid(10, 19), description="Density of the fluid. (smoke ~ 1; water ~ 1000, honey ~ 1500)")
+        self.density_sb = Slidebar(name="density_sb", rect=pg.Rect(get_grid(15, 20), sb_size), min_val=1, max_val=1500, step=1, default=self.app.project.options["density"])
+        
         #   ==========[ BACK BUTTON ]==========
         self.canc_btn = RectButton(name="canc_btn", rect=pg.Rect(get_grid(10, 25), btn_size), anchor="n", text="Cancel")
         
-        #   ==========[ CREATE BUTTON ]==========
+        #   ==========[ SAVE BUTTON ]==========
         self.save_btn = RectButton(name="save_proj_btn", rect=pg.Rect(get_grid(20, 25), btn_size), anchor="n", text="Save")
         
         
         self.buttons: list[RectButton] = [self.canc_btn, self.save_btn]
         self.textboxes: list[TextBox] = [self.proj_textbox]
-        self.slidebars: list[Slidebar] = [self.grav_sb]
-        self.infos: list[Info] = [self.proj_name_info, self.grav_info]
+        self.slidebars: list[Slidebar] = [self.len_sb, self.grav_sb, self.density_sb]
+        self.infos: list[Info] = [self.proj_name_info, self.len_info, self.grav_info, self.density_info]
 
         
     #   ==========[ EVENT HANDLING ]==========
@@ -97,7 +105,9 @@ class EditProjectScreen:
                     new_name = self.proj_textbox.get_input()
                     options = {
                         "resolution": int(self.app.project.options["resolution"]),
-                        "gravity": self.grav_sb.value
+                        "length": int(self.len_sb.value),
+                        "gravity": self.grav_sb.value,
+                        "density": int(self.density_sb.value)
                     }
                     rename_project(old_name, new_name)
                     edit_project(new_name, options)

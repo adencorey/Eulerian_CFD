@@ -39,9 +39,9 @@ class Slidebar(Widget):
         
         self._min_val_surf = self._font.render(str(self._values[0]), True, self._main_clr)
         self._max_val_surf = self._font.render(str(self._values[-1]), True, self._main_clr)
-        self._val_surf = self._font.render(str(self._values[self.index]), True, self._main_clr)
         self._min_val_rect = self._min_val_surf.get_rect(right=self.rect.left - 2 * self._radius, centery=self.rect.centery)
         self._max_val_rect = self._max_val_surf.get_rect(left=self.rect.right + 2 * self._radius, centery=self.rect.centery)
+        self._val_surf = self._font.render(str(self._values[self._index]), True, self._main_clr)
         self._val_rect = self._val_surf.get_rect(top=self.rect.bottom + self._radius, centerx=self._x_vals[self.index])
         
     def update(self, hvr_id, hl_id) -> None:

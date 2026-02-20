@@ -11,12 +11,12 @@ class Grid:
     def __init__(self, project: Project) -> None:
         
         self.dt = 1 / settings.fps
-        self.num_cells = int(project.options["resolution"])
+        self.num_cells = project.options["resolution"]
         self.scale = (self.num_cells - 2) / 32
-        self.env_length = 10                    #   10 meters
-        self.cell_size = self.env_length / (self.num_cells - 2)
+        self.env_length = project.options["length"]     #   meters
+        self.cell_size = self.env_length / self.num_cells
         
-        self.cell_px = int(0.95 * config.height // self.num_cells)
+        self.cell_px = int(0.95 * config.height / self.num_cells)
         self.dim = (self.num_cells * self.cell_px * np.ones(2)).astype(np.uint16)
         self.surf = pg.Surface(self.dim)
         self.rect = self.surf.get_rect(bottomright=np.array((config.width, config.height)) - int((0.98 * config.height - self.dim[1]) / 2) * np.ones(2))
@@ -26,7 +26,8 @@ class Grid:
         x, y = np.meshgrid(side, side)
         self.pos = np.stack((x, y))
         
-        self.density = 1
+        self.gravity = project.options["gravity"]
+        self.density = project.options["density"]
         self.COLLOCATED_GRID = [self.num_cells, self.num_cells]
         self.load_conditions(project)
         
@@ -74,7 +75,6 @@ class Grid:
         return idx
     
     def shrink_field(self, arr: np.ndarray) -> np.ndarray:
-
         side = arr.shape[0]
         if side <= 64 or side % 2 == 1: return arr
         arr = arr.reshape(side // 2, 2, side).sum(axis=1)               #   merge every two rows by summing their respective column values  (shrink vertically)
@@ -91,6 +91,20 @@ class Grid:
     def set_boundary_values(self) -> None:
         np.clip(self.s, 0, 1, out=self.s)
         free_slip_wall_check(self.num_cells, self.w, self.u, self.v)
+        
+    def add_external_forces(self) -> None:
+        self.v[1:-1, 1:-1] += self.dt * self.gravity * -9.81   #   gravity
+
+        #   smoke sources
+        init_smoke = self.s0 > 0
+        self.s[init_smoke] = self.s0[init_smoke]
+        
+        #   velocity sources
+        init_u = np.abs(self.u0) > np.abs(self.u)
+        self.u[init_u] = self.u0[init_u]
+        
+        init_v = np.abs(self.v0) > np.abs(self.v)
+        self.v[init_v] = self.v0[init_v]
     
     def calculate_divergence(self) -> None:
         get_divergence_field(self.num_cells, self.cell_size, self.w, self.u, self.v, self.div)
@@ -175,7 +189,7 @@ class Grid:
     def get_pressure_field_img(self, img, smoke_only=False) -> None:
 
         p = self.p.T
-        max_p = 5_000 * self.density
+        max_p = 100 * self.density
         np.clip(p, -max_p, max_p, out=p)
         norm = 0.5 * (p / max_p) + 0.5
                 
@@ -212,5 +226,5 @@ class Grid:
         for step in steps:
             pos = (position[:, is_mag] + mag_clipped[is_mag] * d[:, is_mag] * step).astype(int)
             valid = (0 < pos[0]) & (pos[0] < self.dim[0]) & (0 < pos[1]) & (pos[1] < self.dim[1])
-            colour = (128, 128, 128) if step < 0.7 else (0, 128, 128)
+            colour = (0, 150, 255) if step < 0.7 else (0, 191, 255)
             img[pos[1][valid], pos[0][valid]] = colour

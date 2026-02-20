@@ -32,12 +32,6 @@ class WidgetRegister:
             self.nxt_id += 1
         else: id = self.ids[name]
         return name, id
-    
-    def unregister(self, id) -> None:
-        """Unregister widget using ID"""
-        
-        key = next((val for _, val in self.ids.items() if val == id), None)
-        if key: self.ids.pop(key)
 registry = WidgetRegister()
 
 

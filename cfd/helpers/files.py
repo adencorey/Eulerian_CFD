@@ -88,15 +88,17 @@ def load_npy(filepath: str) -> np.ndarray | None:
     return None       
 
 
-def create_project(name:str, resolution: int, gravity:int) -> None:
+def create_project(name: str, resolution: int, length: int, gravity: float, density: int) -> None:
     """creates new project directory"""
     
-    def create_dir(name:str, resolution: int, gravity:int) -> True | False:
+    def create_dir(name: str) -> True | False:
         
         filepath = os.path.join(SAVES_PATH, name)
         options = {
             "resolution": resolution,
-            "gravity": gravity
+            "length": length,
+            "gravity": gravity,
+            "density": density
         }
         metadata = {
             "date_created": get_now(sec=False),
@@ -119,10 +121,10 @@ def create_project(name:str, resolution: int, gravity:int) -> None:
     
     if not name: name = "New Project"
     log.debug(f"Creating project with name {name}...")
-    if create_dir(name, resolution, gravity): return
+    if create_dir(name): return
     counter = 1
     while True:
-        if not create_dir(f"{name} ({counter})", resolution, gravity):
+        if not create_dir(f"{name} ({counter})"):
             counter += 1
         else:
             break

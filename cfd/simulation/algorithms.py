@@ -97,18 +97,19 @@ def bilerp(field:np.ndarray[np.float64], floor:tuple[np.int16], fract:tuple[np.f
 def clamp_index(num_cells:int, floor:np.int16, fract:np.float64) -> tuple[np.int16, np.float64]:
     """clamp index and proportion to staggered grid format"""
     
+    #   offset interpolation position
     if fract < 0.5:
         floor -= 1
         fract += 0.5
     else:
         fract -= 0.5
         
-    # Clamp to valid interpolation range [0, num_cells-1]
+    #   clamp to valid interpolation range [0, num_cells-1]
     if floor < 0: 
         floor = 0
     elif floor >= num_cells - 1: 
         floor = num_cells - 1
-        
+
     return floor, fract
 
 @njit("Tuple((int16[:], float64[:]))(float64[:])", cache=True, inline="always")
@@ -141,8 +142,8 @@ def get_smoke_at_pos(num_cells:int, s:np.ndarray[np.float64], idx:np.ndarray[np.
     """get smoke density at a any arbitrary position"""
 
     (i, j), (fi, fj) = split_index(idx)
-    #i, fi = clamp_index(num_cells, i, fi)
-    #j, fj = clamp_index(num_cells, j, fj)
+    i, fi = clamp_index(num_cells, i, fi)
+    j, fj = clamp_index(num_cells, j, fj)
     return bilerp(s, (i, j), (fi, fj))
 
 @njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True, fastmath=True)
@@ -159,7 +160,7 @@ def semi_lagrangian_advect_velocity(dt:float, cell_size:float, num_cells:int, w:
             old_idx = np.array([i+0.5, j])
             old_vel = np.array([get_u_at_pos(num_cells, u, old_idx), -get_v_at_pos(num_cells, v, old_idx)])
             
-            #   backtrack using velocity found
+            #   backtrack
             new_idx = old_idx - np.flip(old_vel) * k
             nu[i, j] = get_u_at_pos(num_cells, u, new_idx)
     
