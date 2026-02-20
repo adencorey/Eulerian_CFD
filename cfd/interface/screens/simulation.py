@@ -56,13 +56,14 @@ class SimulationScreen:
         self.adv_field_chk = CheckBox(name="adv-field-chk", pos=get_grid(2, 21.25), text="Enable advection step (transport velocities and smoke)", font=config.font["sub"], checked=True)
         
         #   ==========[ CONFIGURE ENVIRONMENT SCREEN ]==========
-        self.clr_init_btn = RectButton(name="clr-init-btn", rect=pg.Rect(get_grid(2, 7), (int(0.18 * config.width), int(0.05 * config.height))), text="Clear Configurations")
+        self.clr_init_btn = RectButton(name="clr-init-btn", rect=pg.Rect(get_grid(2, 7), (int(0.15 * config.width), int(0.05 * config.height))), text="Clear Configurations")
+        self.wind_btn = RectButton(name="wind-btn", rect=pg.Rect(get_grid(7, 7), (int(0.15 * config.width), int(0.05 * config.height))), text="Wind Tunnel")
         
-        self.vel_mag_info = Info(name="vel-mag-info", title="Velocity Magnitude", pos=get_grid(2, 16), description="Speed of fluid in that cell, measured in ms^-1.")
-        self.vel_mag_sb = Slidebar(name="vel-mag-sb", rect=pg.Rect(get_grid(7, 18), sb_dim), min_val=1, max_val=50, step=1, default=5)
+        self.vel_mag_info = Info(name="vel-mag-info", title="Velocity Magnitude", pos=get_grid(2, 15), description="Speed of fluid in that cell, measured in ms^-1.")
+        self.vel_mag_sb = Slidebar(name="vel-mag-sb", rect=pg.Rect(get_grid(7, 17), sb_dim), min_val=1, max_val=50, step=1, default=5)
         
         self.angle = 0
-        self.angle_info = Info(name="angle-info", title="Velocity Direction: 0 deg", pos=get_grid(2, 21), description="Angle of velocity in degrees, measured from positive horizontal (right) and increases anti-clockwise.")
+        self.angle_info = Info(name="angle-info", title="Velocity Direction: 0 deg", pos=get_grid(2, 20), description="Angle of velocity in degrees, measured from positive horizontal (right) and increases anti-clockwise.")
         
         self.save_btn = RectButton(name="save-env-btn", rect=pg.Rect(get_grid(2, 24), btn_dim), text="Save")
         self.cancel_btn = RectButton(name="cancel-env-btn", rect=pg.Rect(get_grid(7, 24), btn_dim), text="Cancel")
@@ -79,7 +80,7 @@ class SimulationScreen:
         
         self.config_infos: list[Info] = [self.brush_info, self.angle_info, self.vel_mag_info]
         self.config_sbs: list[Slidebar] = [self.brush_sb, self.vel_mag_sb]
-        self.config_btns: list[RectButton] = [self.save_btn, self.cancel_btn, self.clr_init_btn]
+        self.config_btns: list[RectButton] = [self.save_btn, self.cancel_btn, self.clr_init_btn, self.wind_btn]
         
         self.hover_idx: tuple[int, int] = None
         self.configuring = False
@@ -87,13 +88,19 @@ class SimulationScreen:
         self.base_img = np.zeros([self.grid.num_cells, self.grid.num_cells, 3], dtype=np.uint8)
         self.vel_img = np.zeros((self.grid.dim[1], self.grid.dim[0], 3), dtype=np.uint8)
         self.img_surf = pg.surfarray.make_surface(self.vel_img)
-        self.wind_tunnel = False
         
     def _widgets(self) -> chain[Widget]:
         widgets = chain(self.drps, self.infos, self.sbs, self.chks, self.btns)
         if self.configuring: return chain(self.config_infos, self.config_sbs, self.config_btns)
         if self.shw_debug_chk.checked: return chain(widgets, self.debug_infos, self.debug_chks)
         return widgets
+    
+    def reset_config(self) -> None:
+        
+        self.grid.u0[:, :] = 0
+        self.grid.v0[:, :] = 0
+        self.grid.s0[:, :] = 0
+        self.grid.w[:, :] = 1
         
     #   ==========[ EVENT HANDLING ]==========
     def _handle_hover(self, mouse_pos: tuple) -> None:        
@@ -146,10 +153,15 @@ class SimulationScreen:
             self.__init__(self.app)
         
         elif self.app.hovering.id == self.clr_init_btn.id:
-            self.grid.u0[:, :] = 0
-            self.grid.v0[:, :] = 0
-            self.grid.s0[:, :] = 0
-            self.grid.w[:, :] = 1
+            self.reset_config()
+        
+        elif self.app.hovering.id == self.wind_btn.id:
+            self.reset_config()
+            mid = self.grid.num_cells // 2
+            length = self.grid.num_cells // 10
+            self.grid.w[0, :] = self.grid.w[-1, :] = 0
+            self.grid.u0[:, :3] = self.grid.env_length * 2
+            self.grid.s0[mid-length:mid+length, :3] = 1
             
         else:
             for widget in self._widgets():
@@ -353,7 +365,7 @@ class SimulationScreen:
         screen.blit(self.control_surf, get_grid(2, 26))                     #   controls
         if self.configuring:
             screen.blit(self.wall_surf, get_grid(2, 27))                    #   wall
-            screen.blit(self.angle_surf, get_grid(2, 22))                   #   angle
+            screen.blit(self.angle_surf, get_grid(2, 21))                   #   angle
         self.draw_grid(screen)
 
         for widget in self._widgets():
