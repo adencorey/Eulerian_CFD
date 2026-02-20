@@ -32,7 +32,7 @@ class SimulationScreen:
         self.dsp_field_info = Info(name="dsp-field-info", title="Display Field", pos=get_grid(2, 7), description="Select type of field to display.")
         self.dsp_field_drp = Dropdown(name="dsp-field-drp", rect=pg.Rect(get_grid(8, 7), drp_dim), options=["Smoke", "Divergence", "Pressure"], setting=self.dsp_field, anchor="w", font=config.font["par"])
         self.shw_vel_chk = CheckBox(name="shw-vel-chk", pos=get_grid(2, 8.5), text="Show velocity arrows")
-        
+        self.smoke_only_chk = CheckBox(name="smoke-only-chk", pos=get_grid(8, 8.5), text="Smoke only")
         
         self.brush_info = Info(name="brush_size_info", title="Brush Size", pos=get_grid(2, 10))
         self.brush_sb = Slidebar(name="brush_size_sb", rect=pg.Rect(get_grid(9, 10), sb_dim), min_val=1, max_val=int(0.25 * self.grid.num_cells), step=1, default=int(0.1 * self.grid.num_cells))
@@ -71,7 +71,7 @@ class SimulationScreen:
         self.infos: list[Info] = [self.dsp_field_info, self.brush_info]
         self.drps: list[Dropdown] = [self.dsp_field_drp]
         self.sbs: list[Slidebar] = [self.brush_sb]
-        self.chks: list[CheckBox] = [self.shw_debug_chk, self.shw_vel_chk]
+        self.chks: list[CheckBox] = [self.shw_debug_chk, self.shw_vel_chk, self.smoke_only_chk]
         self.btns: list[RectButton] = [self.config_env]
         
         self.debug_infos: list[Info] = [self.total_div, self.total_s, self.cell_type, self.cell_idx, self.cell_vel, self.cell_div, self.cell_s, self.cell_p]
@@ -293,7 +293,7 @@ class SimulationScreen:
         match self.dsp_field:
             case "Smoke": self.grid.get_smoke_field_img(self.base_img)
             case "Divergence": self.grid.get_divergence_field_img(self.base_img)
-            case "Pressure": self.grid.get_pressure_field_img(self.base_img, smoke_only=True)
+            case "Pressure": self.grid.get_pressure_field_img(self.base_img, smoke_only=self.smoke_only_chk.checked)
             case "Config": self.grid.get_smoke_field_img(self.base_img, initial=True)
         self.vel_img[:, :, :] = 0
         
@@ -357,6 +357,9 @@ class SimulationScreen:
         self.draw_grid(screen)
 
         for widget in self._widgets():
+            if widget.id == self.smoke_only_chk.id:
+                if self.dsp_field != "Pressure": continue
+                
             if isinstance(widget, Dropdown):
                 widget.draw_parent(screen)
                 continue
