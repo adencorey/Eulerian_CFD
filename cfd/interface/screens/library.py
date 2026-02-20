@@ -23,10 +23,11 @@ class LibraryScreen:
         self.proj_dim = (int(0.5 * config.width), int(0.1 * config.height))
         
         #   ==========[ BUTTONS ]==========
-        self.crt_btn = RectButton(name="crt_proj_scn_btn", rect=pg.Rect(get_grid(3, 10), self.btn_dim), text="Create Project")
-        self.edit_btn = RectButton(name="edit_proj_scn_btn", rect=pg.Rect(get_grid(3, 15), self.btn_dim), text="Edit Project", disabled=True)
-        self.del_btn = RectButton(name="del_proj_btn", rect=pg.Rect(get_grid(3, 20), self.btn_dim), text="Delete Project", disabled=True)
-        self.alter_buttons: list[RectButton] = [self.edit_btn, self.del_btn]
+        self.load_btn = RectButton(name="load_proj_btn", rect=pg.Rect(get_grid(3, 10), self.btn_dim), text="Load Project", disabled=True)
+        self.crt_btn = RectButton(name="crt_proj_scn_btn", rect=pg.Rect(get_grid(3, 13), self.btn_dim), text="Create Project")
+        self.edit_btn = RectButton(name="edit_proj_scn_btn", rect=pg.Rect(get_grid(3, 16), self.btn_dim), text="Edit Project", disabled=True)
+        self.del_btn = RectButton(name="del_proj_btn", rect=pg.Rect(get_grid(3, 19), self.btn_dim), text="Delete Project", disabled=True)
+        self.alter_buttons: list[RectButton] = [self.load_btn, self.edit_btn, self.del_btn]
 
         #   ==========[ PROJECT ENTRIES ]==========        
         project_entries = scan_projects()
@@ -87,6 +88,14 @@ class LibraryScreen:
 
         else:
             match self.app.hovering.id:
+                
+                case self.load_btn.id:
+                    if not self.load_btn.disabled:
+                        event = Events.SCREEN_SWITCH
+                        extra_data["screen_id"] = Screens.SIMULATION.value
+                        self.app.highlighted = NULLWIDGET
+                        self.app.project.metadata["last_opened"] = get_now(False)
+                        edit_project(self.app.project.name, metadata=self.app.project.metadata)  
                 
                 case self.crt_btn.id:
                     if not self.crt_btn.disabled:
