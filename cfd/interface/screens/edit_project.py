@@ -19,7 +19,7 @@ class EditProjectScreen:
         
         btn_size = int(0.2 * config.width), int(0.05 * config.height)
         tb_size = int(0.35 * config.width), int(0.06 * config.height)
-        sb_size = int(0.25 * config.width), int(0.01 * config.height)
+        sb_size = int(0.3 * config.width), int(0.01 * config.height)
 
         #   ==========[ TITLE ]==========
         self.title_surf = config.font["title"].render("Edit Project", True, config.main_clr)
@@ -38,7 +38,7 @@ class EditProjectScreen:
         
         #   ==========[ DENSITY SLIDEBAR ]==========
         self.density_info = Info(name="density_info", title="Fluid Density", pos=get_grid(10, 19), description="Density of the fluid. (smoke ~ 1; water ~ 1000, honey ~ 1500)")
-        self.density_sb = Slidebar(name="density_sb", rect=pg.Rect(get_grid(15, 20), sb_size), min_val=1, max_val=1500, step=1, default=self.app.project.options["density"])
+        self.density_sb = Slidebar(name="density_sb", rect=pg.Rect(get_grid(15, 20), sb_size), min_val=1, max_val=1501, step=10, default=self.app.project.options["density"])
         
         #   ==========[ BACK BUTTON ]==========
         self.canc_btn = RectButton(name="canc_btn", rect=pg.Rect(get_grid(10, 25), btn_size), anchor="n", text="Cancel")

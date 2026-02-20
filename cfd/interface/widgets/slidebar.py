@@ -42,24 +42,24 @@ class Slidebar(Widget):
         self._min_val_rect = self._min_val_surf.get_rect(right=self.rect.left - 2 * self._radius, centery=self.rect.centery)
         self._max_val_rect = self._max_val_surf.get_rect(left=self.rect.right + 2 * self._radius, centery=self.rect.centery)
         self._val_surf = self._font.render(str(self._values[self._index]), True, self._main_clr)
-        self._val_rect = self._val_surf.get_rect(top=self.rect.bottom + self._radius, centerx=self._x_vals[self.index])
+        self._val_rect = self._val_surf.get_rect(top=self.rect.bottom + self._radius, centerx=self._x_vals[self._index])
         
     def update(self, hvr_id, hl_id) -> None:
 
-        def is_between_vals(index):
-            return self._x_vals[index] <= self.x_pos <= self._x_vals[index + 1]
+        def is_between_vals(_index):
+            return self._x_vals[_index] <= self.x_pos <= self._x_vals[_index + 1]
         
         if self.x_pos < self._x_vals[0]: 
-            self.index = 0
+            self._index = 0
         elif self.x_pos > self._x_vals[-1]: 
-            self.index = -1
+            self._index = -1
         else:
             for i in range(len(self._x_vals) - 1):
                 if is_between_vals(i):
-                    self.index = i if abs(self.x_pos - self._x_vals[i]) < abs(self.x_pos - self._x_vals[i + 1]) else i + 1
+                    self._index = i if abs(self.x_pos - self._x_vals[i]) < abs(self.x_pos - self._x_vals[i + 1]) else i + 1
                     break
 
-        self.value = float(self._values[self.index])
+        self.value = float(self._values[self._index])
         self._update_colours(hvr_id, hl_id)
         self._update_text()
             
@@ -75,5 +75,5 @@ class Slidebar(Widget):
     def draw(self, screen:pg.Surface) -> None:
         super().draw(screen)
         
-        pg.draw.circle(screen, self._bg_clr, (self._x_vals[self.index], self.rect.centery), self._radius)
-        pg.draw.circle(screen, self._main_clr, (self._x_vals[self.index], self.rect.centery), self._radius, self._border)
+        pg.draw.circle(screen, self._bg_clr, (self._x_vals[self._index], self.rect.centery), self._radius)
+        pg.draw.circle(screen, self._main_clr, (self._x_vals[self._index], self.rect.centery), self._radius, self._border)
