@@ -24,6 +24,12 @@ Open Command Prompt (Windows) or Terminal (Mac / Linux) and paste the following.
 git clone https://github.com/adencorey/Eulerian_CFD.git
 cd Eulerian_CFD
 ```
+
+If you don't have Git installed, you can also download the .zip files in GitHub and extract it. Then paste the following, replacing the path with the absolute path to the folder.
+```
+cd absolute/path/to/Eulerian_CFD
+```
+
 ## 2. Create virtual environment
 
 This downloads all dependencies into a folder, so uninstalling is easier.
