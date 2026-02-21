@@ -1,60 +1,89 @@
-#  Eulerian Computational Fluid Dynamics
+# Eulerian Computational Fluid Dynamics
 
-A simple Python fluid simulator that demonstrates incompressible, isothermal and inviscid flow using an **Eulerian grid-baseed method**.
+A Python-based fluid simulator demonstrating **incompressible,
+isothermal, inviscid flow** using an Eulerian grid-based formulation.
 
-Built with:
--  [Pygame](https://www.pygame.org/)
--  [NumPy](https://numpy.org/)
--  [Numba](https://numba.pydata.org/).
+The solver operates on a fixed spatial grid and evolves velocity fields
+over time, with real-time visualisation.
 
+
+## Built With
+
+-   [Pygame](https://www.pygame.org/) -- Visualisation interface
+-   [NumPy](https://numpy.org/) -- Numerical array operations
+-   [Numba](https://numba.pydata.org/) -- JIT acceleration for performance
+  
 
 ## Prerequisites
 
-Make sure Python is installed on your computer. You can download it from the official website:
+Install Python from the official website:
 
-[Download Python](https://www.python.org/downloads/)
+https://www.python.org/downloads/
 
 > Recommended: Python 3.11 or later
 
 
-## 1. Clone the repository
+## 1. Clone the Repository
 
-Open Command Prompt (Windows) or Terminal (Mac / Linux) and paste the following. This downloads all the necessary files into your computer.
-```
+Open Command Prompt (Windows) or Terminal (Mac/Linux):
+
+``` bash
 git clone https://github.com/adencorey/Eulerian_CFD.git
 cd Eulerian_CFD
 ```
 
-If you don't have Git installed, you can also download the .zip files in GitHub and extract it. Then paste the following, replacing the path with the absolute path to the folder.
-```
+If Git is not installed, download the repository as a `.zip` from GitHub
+and extract it. Then navigate to the folder:
+
+``` bash
 cd absolute/path/to/Eulerian_CFD
 ```
 
-## 2. Create virtual environment
 
-This downloads all dependencies into a folder, so uninstalling is easier.
+## 2. Create a Virtual Environment
 
-#### Windows
-```
+Using a virtual environment isolates dependencies and simplifies removal
+later.
+
+### Windows
+
+``` bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-####  Mac / Linux
-```
+### Mac / Linux
+
+``` bash
 python3 -m venv venv
 source venv/bin/activate
 ```
-###  Install dependencies
-```
+
+## 3. Install Dependencies
+
+``` bash
 pip install -r requirements.txt
 ```
 
-##  3. Running the program
 
-Make sure you are in the program directory first.
-```
+## 4. Run the Simulation
+
+Ensure you are inside the project directory:
+
+``` bash
 python -m cfd
 ```
-Wait for a few minutes to compile all the algorithms, then an interface should appear.
 
+On first run, Numba will compile optimised kernels. This may take a
+short time.\
+After compilation, the simulation window will launch.
+
+------------------------------------------------------------------------
+
+## Notes
+
+-   Initial startup may take longer due to JIT compilation.
+-   Performance scales with grid resolution; higher resolutions require
+    more CPU time.
+
+------------------------------------------------------------------------
