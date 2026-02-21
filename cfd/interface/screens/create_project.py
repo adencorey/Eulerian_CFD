@@ -41,7 +41,7 @@ class CreateProjectScreen:
         
         #   ==========[ DENSITY SLIDEBAR ]==========
         self.density_info = Info(name="density_info", title="Fluid Density", pos=get_grid(10, 19), description="Density of the fluid. (smoke ~ 1; water ~ 1000, honey ~ 1500)")
-        self.density_sb = Slidebar(name="density_sb", rect=pg.Rect(get_grid(15, 20), sb_size), min_val=1, max_val=1501, step=10, default=1)
+        self.density_sb = Slidebar(name="density_sb", rect=pg.Rect(get_grid(15, 20), sb_size), min_val=1, max_val=1600, step=3, default=1)
         
         #   ==========[ BACK BUTTON ]==========
         self.canc_btn = RectButton(name="canc_btn", rect=pg.Rect(get_grid(10, 25), btn_size), anchor="n", text="Cancel")

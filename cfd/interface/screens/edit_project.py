@@ -33,12 +33,12 @@ class EditProjectScreen:
         self.len_sb = Slidebar(name="len_sb", rect=pg.Rect(get_grid(15, 14), sb_size), min_val=1, max_val=100, step=1, default=self.app.project.options["length"])
         
         #   ==========[ GRAVITY STRENGTH SLIDEBAR ]==========
-        self.grav_info = Info(name="grav_info", title="Gravity Strength", pos=get_grid(10, 15), description="Gravity strength of project environment, multiplier of acceleration due to gravity on Earth (9.81 ms^-2).")
+        self.grav_info = Info(name="grav_info", title="Gravity Strength", pos=get_grid(10, 16), description="Gravity strength of project environment, multiplier of acceleration due to gravity on Earth (9.81 ms^-2).")
         self.grav_sb = Slidebar(name="grav_sb", rect=pg.Rect(get_grid(15, 17), sb_size), min_val=-1, max_val=5, step=0.1, default=self.app.project.options["gravity"])
         
         #   ==========[ DENSITY SLIDEBAR ]==========
         self.density_info = Info(name="density_info", title="Fluid Density", pos=get_grid(10, 19), description="Density of the fluid. (smoke ~ 1; water ~ 1000, honey ~ 1500)")
-        self.density_sb = Slidebar(name="density_sb", rect=pg.Rect(get_grid(15, 20), sb_size), min_val=1, max_val=1501, step=10, default=self.app.project.options["density"])
+        self.density_sb = Slidebar(name="density_sb", rect=pg.Rect(get_grid(15, 20), sb_size), min_val=1, max_val=1600, step=3, default=self.app.project.options["density"])
         
         #   ==========[ BACK BUTTON ]==========
         self.canc_btn = RectButton(name="canc_btn", rect=pg.Rect(get_grid(10, 25), btn_size), anchor="n", text="Cancel")

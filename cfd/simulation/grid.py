@@ -60,11 +60,7 @@ class Grid:
         else:
             #   wall cells  (1 - valid cell; 0 - wall cell)
             self.w = np.ones(self.COLLOCATED_GRID, dtype=np.uint8)
-            self.w[1:-1, 1] = 0
-            self.w[1:-1, -2] = 0
-            self.w[1, 2:-2] = 0
-            self.w[-2, 2:-2] = 0
-                
+            self.w[1:-1, 1] = self.w[1:-1, -2] = self.w[1, 2:-2] = self.w[-2, 2:-2] = 0
     
     #   ==========[ UTILITIES ]==========        
     def hovered_cell(self, mouse_pos) -> tuple[int, int] | None:

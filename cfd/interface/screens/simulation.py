@@ -159,9 +159,9 @@ class SimulationScreen:
             self.reset_config()
             mid = self.grid.num_cells // 2
             length = self.grid.num_cells // 10
-            self.grid.w[0, :] = self.grid.w[-1, :] = 0
-            self.grid.u0[:, :3] = self.grid.env_length * 2
-            self.grid.s0[mid-length:mid+length, :3] = 1
+            self.grid.w[1, :] = self.grid.w[-2, :] = 0
+            self.grid.u0[:, 1:4] = self.grid.env_length * 2
+            self.grid.s0[mid-length:mid+length, 1:4] = 1
             
         else:
             for widget in self._widgets():
