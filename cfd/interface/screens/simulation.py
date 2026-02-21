@@ -158,7 +158,7 @@ class SimulationScreen:
         elif self.app.hovering.id == self.wind_btn.id:
             self.reset_config()
             mid = self.grid.num_cells // 2
-            length = self.grid.num_cells // 10
+            length = self.grid.num_cells // 20
             self.grid.w[1, :] = self.grid.w[-2, :] = 0
             self.grid.u0[:, 1:4] = self.grid.env_length * 2
             self.grid.s0[mid-length:mid+length, 1:4] = 1

@@ -185,7 +185,7 @@ class Grid:
     def get_pressure_field_img(self, img, smoke_only=False) -> None:
 
         p = self.p.T
-        max_p = 100 * self.density
+        max_p = 500 * self.density
         np.clip(p, -max_p, max_p, out=p)
         norm = 0.5 * (p / max_p) + 0.5
                 
