@@ -98,7 +98,7 @@ class DropdownChild(Widget):
         super().__init__(name=None, rect=rect, text=text, font=font)
         self.name = name
         
-    def _update_colours(self, hvr_name, hl_name):
+    def _update_colours(self, hvr_name, hl_name) -> None:
 
         if self.name == hl_name:
             self._main_clr, self._bg_clr = config.secondary_clr, config.bg_clr

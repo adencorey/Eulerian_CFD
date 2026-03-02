@@ -66,7 +66,7 @@ class Widget:
         pg.draw.rect(screen, self._main_clr, self.rect, self._border)
         self._draw_text(screen)
     
-class NullWidget:
+class NullWidget():
     id = None
     name = None
 NULLWIDGET = NullWidget()

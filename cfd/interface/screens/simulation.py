@@ -346,8 +346,7 @@ class SimulationScreen:
 
     
     #   ==========[ DRAW ]==========
-    def draw_grid(self, screen:pg.Surface) -> None:
-        
+    def draw_grid(self, screen:pg.Surface) -> None:        
         self.grid.get_walls_field_img(self.base_img)
         base_surf = pg.surfarray.make_surface(self.base_img)
         self.img_surf.blit(pg.transform.scale(base_surf, self.grid.dim), (0, 0))
@@ -370,7 +369,8 @@ class SimulationScreen:
 
         for widget in self._widgets():
             if widget.id == self.smoke_only_chk.id:
-                if self.dsp_field != "Pressure": continue
+                if self.dsp_field != "Pressure": 
+                    continue
                 
             if isinstance(widget, Dropdown):
                 widget.draw_parent(screen)

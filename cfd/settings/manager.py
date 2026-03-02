@@ -58,29 +58,3 @@ class Settings:
         else:
             log.debug("Settings file not found, using default settings")
 settings = Settings()
-
-
-#   ==========[ SETTINGS PRESETS ]==========
-DEFAULT = Settings(
-    theme_name="dark",
-    fps=60,
-    show_fps=False,
-    iterator=50,
-    sor_weight=1.6
-)
-
-PERFORMANCE = Settings(
-    theme_name="dark",
-    fps=30,
-    show_fps=True,
-    iterator=30,
-    sor_weight=1.8
-)
-
-ULTRA = Settings(
-    theme_name="dark",
-    fps=120,
-    show_fps=False,
-    iterator=100,
-    sor_weight=1.4
-)

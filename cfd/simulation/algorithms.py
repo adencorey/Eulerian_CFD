@@ -88,9 +88,9 @@ def bilerp(field:np.ndarray[np.float64], floor:tuple[np.int16], fract:tuple[np.f
     """
     i, j = floor
     fi, fj = fract
-    t = (1 - fj) * field[i, j] + fj * field[i, j+1]         #   lerp top left and top right
-    b = (1 - fj) * field[i+1, j] + fj * field[i+1, j+1]     #   lerp bottom left and bottom right
-    return (1 - fi) * t + fi * b                            #   lerp top and bottom
+    top = (1 - fj) * field[i, j] + fj * field[i, j+1]         #   lerp top left and top right
+    bot = (1 - fj) * field[i+1, j] + fj * field[i+1, j+1]     #   lerp bottom left and bottom right
+    return (1 - fi) * top + fi * bot                            #   lerp top and bottom
 
 
 @njit("Tuple((int16, float64))(uint16, uint16, float64)", cache=True, inline="always")
@@ -149,7 +149,7 @@ def get_smoke_at_pos(num_cells:int, s:np.ndarray[np.float64], idx:np.ndarray[np.
 @njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :], float64[:, :])", cache=True, parallel=True, fastmath=True)
 def semi_lagrangian_advect_velocity(dt:float, cell_size:float, num_cells:int, w:np.ndarray[np.uint8], u:np.ndarray[np.float64], v:np.ndarray[np.float64], nu:np.ndarray[np.float64], nv:np.ndarray[np.float64]) -> None:
     """calculate new velocity by backtracking by dt and bilinear interpolate between 4 cells"""
-    
+
     k = dt / cell_size
     #   advect horizontal velocities
     for i in prange(1, num_cells - 1):
@@ -177,7 +177,6 @@ def semi_lagrangian_advect_velocity(dt:float, cell_size:float, num_cells:int, w:
             new_idx = old_idx - np.flip(old_vel) * k
             nv[i, j] = get_v_at_pos(num_cells, v, new_idx)
 
-
 @njit("void(float32, float32, uint16, uint8[:, :], float64[:, :], float64[:, :], float64[:, :],  float64[:, :])", cache=True, parallel=True, fastmath=True)
 def semi_lagrangian_advect_smoke(dt:float, cell_size:float, num_cells:int, w:np.ndarray[np.uint8], s:np.ndarray[np.float64], ns:np.ndarray[np.float64], u:np.ndarray[np.float64], v:np.ndarray[np.float64]) -> None:
     """calculate new smoke density by backtracking by dt and bilinear interpolate between 4 cells"""
@@ -194,12 +193,6 @@ def semi_lagrangian_advect_smoke(dt:float, cell_size:float, num_cells:int, w:np.
             #   backtrack
             new_idx = old_idx - np.flip(old_vel) * k
             ns[i, j] = get_smoke_at_pos(num_cells, s, new_idx)
-
-"""
-31st Oct: Tries to build a wind tunnel. Albeit the high neg divergence and high overall pressuree, vortex shredding can be shown.
-Seems like boundary check is done badly, mass cannot leave system and hence compresses, and pressure rises to resist inflow.
-changed to only copy interior values if outflow else stay as it is
-"""
 
 #   ==========[ DIFFUSION ]==========
 @njit("void(float32, uint16, uint8[:, :], float64[:, :], uint16, float32)", cache=True, fastmath=True)
